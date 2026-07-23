@@ -1,0 +1,14 @@
+node_modules/
+.svelte-kit/
+.vscode/
+build/
+package-lock.json
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Ignore Figma screenshots folder as requested
+figma_screenshot/
+src/lib/assets/figma_screenshot/
+rules.md
