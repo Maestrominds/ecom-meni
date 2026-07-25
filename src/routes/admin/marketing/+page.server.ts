@@ -6,25 +6,27 @@ export const load: PageServerLoad = async ({ fetch, cookies }) => {
     const token = cookies.get('admin_token');
 
     try {
-        const response = await fetch(`${env.PUBLIC_API_URL}/admin/coupons`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
+        const [couponsRes, templatesRes] = await Promise.all([
+            fetch(`${env.PUBLIC_API_URL}/admin/coupons`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${env.PUBLIC_API_URL}/admin/templates`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch coupons: ${response.statusText}`);
-        }
-
-        const data = await response.json();
+        const coupons = couponsRes.ok ? await couponsRes.json() : [];
+        const templates = templatesRes.ok ? await templatesRes.json() : [];
         
         return {
-            coupons: data || []
+            coupons: coupons || [],
+            templates: templates || []
         };
     } catch (err) {
-        console.error('Error fetching coupons:', err);
+        console.error('Error fetching marketing data:', err);
         return {
-            coupons: []
+            coupons: [],
+            templates: []
         };
     }
 };

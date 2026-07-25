@@ -2,7 +2,7 @@
   import { Star } from 'lucide-svelte';
   import { store } from '$lib/store.svelte';
   
-  export let product: any; // Accept product data
+  let { product }: { product: any } = $props();
   
   // Calculate mock original price and savings
   const originalPrice = product.base_price * 1.3;

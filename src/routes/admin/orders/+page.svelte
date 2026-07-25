@@ -4,7 +4,7 @@
   let { data } = $props();
   
   // Transform backend data to match the UI
-  let orders = $derived(data.orders.map((o: any) => ({
+  let orders = $derived((data.orders || []).map((o: any) => ({
     id: o.id || 'N/A',
     date: o.created_at ? new Date(o.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
     customerName: o.customer_name || 'Unknown',

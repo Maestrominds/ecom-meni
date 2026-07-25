@@ -1,17 +1,26 @@
 <script lang="ts">
   import { store } from '$lib/store.svelte';
   import { Search, User, Heart, ShoppingCart, Mic } from '@lucide/svelte';
+  import { page } from '$app/state';
 
   function handleNav(e: MouseEvent, path: string) {
     store.triggerLoading(800);
   }
 </script>
 
+{#if page.data.announcement?.IsActive && page.data.announcement?.Text}
 <div class="top-banner">
   <div class="banner-track">
-    <span>COD Available Across India</span>
+    {#if page.data.announcement?.LinkUrl}
+      <a href={page.data.announcement.LinkUrl} style="color: inherit; text-decoration: none;">
+        <span>{page.data.announcement.Text}</span>
+      </a>
+    {:else}
+      <span>{page.data.announcement.Text}</span>
+    {/if}
   </div>
 </div>
+{/if}
 
 <header class="header">
   <div class="container flex align-center justify-between header-inner">
@@ -62,6 +71,7 @@
         <a href="/skin-wellness" onclick={(e) => handleNav(e, '/skin-wellness')} class="nav-link">Skin Wellness</a>
         <a href="/best-selling-combo" onclick={(e) => handleNav(e, '/best-selling-combo')} class="nav-link">Best Selling Combo</a>
         <a href="/shop" onclick={(e) => handleNav(e, '/shop')} class="nav-link">Shop</a>
+        <a href="/blog" onclick={(e) => handleNav(e, '/blog')} class="nav-link">Blog</a>
       </div>
 
       <button class="quiz-btn" onclick={() => store.openQuiz()}>
@@ -73,18 +83,43 @@
 
 <style>
   .top-banner {
-    background: var(--primary);
+    background: linear-gradient(90deg, #E04F36 0%, #F59E0B 100%);
     color: white;
-    font-size: 13px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 700;
     text-align: center;
-    padding: 8px 0;
-    letter-spacing: 0.05em;
+    padding: 10px 24px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+  }
+  .top-banner a {
+    color: white;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.2s ease, text-shadow 0.2s ease;
+  }
+  .top-banner a:hover {
+    opacity: 0.95;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+  }
+  .top-banner span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .header {
     background: var(--white);
     border-bottom: 1px solid var(--border-light);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -102,7 +137,7 @@
   }
 
   .logo-img {
-    height: 40px;
+    height: 48px;
     width: auto;
     object-fit: contain;
   }

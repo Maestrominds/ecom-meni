@@ -1,16 +1,81 @@
 <script lang="ts">
   import { store } from '$lib/store.svelte';
   import { X, Trash2, ShoppingBag, Plus, Minus } from '@lucide/svelte';
+  import { env } from '$env/dynamic/public';
   
   let checkoutSuccess = $state(false);
+  let isCheckingOut = $state(false);
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
-  function handleCheckout() {
-    checkoutSuccess = true;
-    setTimeout(() => {
-      store.cartItems = [];
-      store.isCartOpen = false;
-      checkoutSuccess = false;
-    }, 2500);
+  async function handleCheckout() {
+    if (store.cartItems.length === 0) return;
+    
+    isCheckingOut = true;
+    try {
+      const payload = {
+        user_id: "00000000-0000-0000-0000-000000000000", // Mock valid UUID until Phase 4 (Auth)
+        items: store.cartItems.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity
+        })),
+        shipping_address: {
+          line1: "123 Wellness Ave",
+          city: "Mumbai",
+          state: "MH",
+          country: "India",
+          pincode: "400001"
+        }
+      };
+
+      const res = await fetch(`${baseUrl}/customer/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Failed to create order');
+
+      const data = await res.json();
+      
+      // Initialize Razorpay
+      const options = {
+        key: "rzp_test_placeholder", // Replace with real key in production
+        amount: data.total_amount * 100, // Amount in paise
+        currency: "INR",
+        name: "MENI Wellness",
+        description: "Test Transaction",
+        order_id: data.razorpay_order_id,
+        handler: function (response: any) {
+          // In a real app, verify signature on backend via webhook or explicit API call
+          checkoutSuccess = true;
+          setTimeout(() => {
+            store.cartItems = [];
+            store.isCartOpen = false;
+            checkoutSuccess = false;
+          }, 3500);
+        },
+        prefill: {
+          name: "Test User",
+          email: "test@example.com",
+          contact: "9999999999"
+        },
+        theme: {
+          color: "#F05139"
+        }
+      };
+      
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        alert(response.error.description);
+      });
+      rzp.open();
+
+    } catch (e) {
+      console.error(e);
+      alert("Checkout failed. Make sure products match the backend database.");
+    } finally {
+      isCheckingOut = false;
+    }
   }
 </script>
 
@@ -86,8 +151,8 @@
             <span class="total-price">₹{store.cartTotal.toLocaleString()}</span>
           </div>
           <p class="shipping-info">Shipping and taxes calculated at checkout.</p>
-          <button class="checkout-btn" onclick={handleCheckout}>
-            Proceed to Checkout
+          <button class="checkout-btn" onclick={handleCheckout} disabled={isCheckingOut}>
+            {isCheckingOut ? 'Processing...' : 'Proceed to Checkout'}
           </button>
         </div>
       {/if}

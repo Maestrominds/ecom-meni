@@ -1,10 +1,10 @@
-import { api } from '$lib/data/mockApi';
 import { env } from '$env/dynamic/public';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ fetch }) => {
     const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
+    // Helper to gracefully fetch and return an empty array/object on failure
     const fetchGracefully = async (url: string, fallback: any) => {
         try {
             const res = await fetch(url);
@@ -16,18 +16,19 @@ export const load: PageLoad = async ({ fetch }) => {
         }
     };
 
-    // Still use mockApi for products if the backend endpoint is incomplete/mocked
-    const products = await api.products.getAll();
-    
-    const [banners, socialLinks, blogs] = await Promise.all([
+    // Fetch all required data concurrently
+    const [banners, announcement, reviews, socialLinks, blogs] = await Promise.all([
         fetchGracefully(`${baseUrl}/admin/content/banners`, []),
+        fetchGracefully(`${baseUrl}/admin/content/announcement`, { text: '', link_url: '', is_active: false }),
+        fetchGracefully(`${baseUrl}/admin/content/reviews`, []),
         fetchGracefully(`${baseUrl}/admin/content/social-links`, []),
         fetchGracefully(`${baseUrl}/public/blogs`, [])
     ]);
 
     return {
-        products,
         banners,
+        announcement,
+        reviews,
         socialLinks,
         blogs
     };

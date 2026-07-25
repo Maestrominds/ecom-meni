@@ -1,6 +1,7 @@
 <script lang="ts">
   import { store } from '$lib/store.svelte';
-  import { Star, CheckCircle, Heart, UserCheck, Shield } from '@lucide/svelte';
+  import { Star, CheckCircle, Heart, UserCheck, Shield, Leaf, FlaskConical, Users } from '@lucide/svelte';
+  import SlideBanner from '$lib/components/SlideBanner.svelte';
   
   import founderStoryImg from '$lib/assets/landing_page/fonder_story.png';
   import peachWashImg from '$lib/assets/landing_page/pleach_section.png';
@@ -8,19 +9,24 @@
   import logo2 from '$lib/assets/landing_page/2im.png';
   import logo3 from '$lib/assets/landing_page/3im.png';
   import logo4 from '$lib/assets/landing_page/4im.png';
+  
+  import hairWellnessImg from '$lib/assets/landing_page/hair_welness.svg';
+  import skinWellnessImg from '$lib/assets/landing_page/skin_welness.svg';
+  import supplementsImg from '$lib/assets/landing_page/supplements.svg';
+  import combosImg from '$lib/assets/landing_page/combo.svg';
 
   const categories = [
-    { name: 'Hair Wellness', img: '' }, 
-    { name: 'Skin Wellness', img: '' },
-    { name: 'Supplements', img: '' },
-    { name: 'Combos', img: '' }
+    { name: 'Hair Wellness', img: hairWellnessImg, link: '/hair-wellness' }, 
+    { name: 'Skin Wellness', img: skinWellnessImg, link: '/skin-wellness' },
+    { name: 'Supplements', img: supplementsImg, link: '/shop' },
+    { name: 'Combos', img: combosImg, link: '/best-selling-combo' }
   ];
 
   let { data } = $props();
-  const { products: mockProducts, blogs: mockBlogs } = data;
+  const { products: mockProducts, blogs: apiBlogs, banners, socialLinks } = data;
 
   // Map backend products to the UI format required by this page
-  const products = mockProducts.map(p => ({
+  const products = (mockProducts || []).map(p => ({
     id: p.id,
     name: p.name,
     price: p.base_price,
@@ -32,19 +38,113 @@
     img: p.image_url
   }));
 
-  const blogs = mockBlogs.map(b => ({
-    date: b.date,
-    title: b.title,
-    excerpt: b.body.substring(0, 80) + '...',
-    img: b.cover_image_url
+  const blogs = (apiBlogs || []).map(b => ({
+    id: b.ID,
+    date: new Date(b.CreatedAt || Date.now()).toLocaleDateString(),
+    title: b.Title,
+    excerpt: b.Body ? b.Body.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 80) + '...' : '',
+    img: b.CoverImageUrl || ''
   }));
 
-  const videos = [
-    { title: 'Healthy & Glowing Skin', img: '' },
-    { title: 'Brightening Cream', img: '' },
-    { title: 'Collagen Capsules', img: '' },
-    { title: 'Healthy & Glowing Skin', img: '' }
-  ];
+  // Banner Slideshow State
+  let currentBannerIndex = $state(0);
+  const heroBanner = $derived(banners && banners.length > 0 ? banners[currentBannerIndex] : null);
+
+  const prevBanner = () => {
+    if (banners && banners.length > 0) {
+      currentBannerIndex = (currentBannerIndex - 1 + banners.length) % banners.length;
+    }
+  };
+
+  const nextBanner = () => {
+    if (banners && banners.length > 0) {
+      currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+    }
+  };
+
+  $effect(() => {
+    if (banners && banners.length > 1) {
+      const interval = setInterval(() => {
+        currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  });
+
+  import { onMount } from 'svelte';
+  let videos = $state([
+    { title: 'Healthy & Glowing Skin', videoUrl: 'https://youtube.com/shorts/aEtRAmwhNeM?si=cAH-mtBdi0z02MpS', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
+    { title: 'Brightening Cream', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
+    { title: 'Collagen Capsules', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
+    { title: 'Healthy & Glowing Skin', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null }
+  ]);
+
+  onMount(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('homepage_videos');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          videos = parsed.map((v: any) => ({
+            ...v,
+            isPlayingWithSound: false,
+            el: null
+          }));
+        } catch(e) {}
+      }
+    }
+  });
+
+  function toggleVideoSound(idx: number) {
+    videos.forEach((video, i) => {
+      if (i === idx) {
+        video.isPlayingWithSound = !video.isPlayingWithSound;
+        if (video.el) {
+          video.el.currentTime = 0;
+          video.el.muted = !video.isPlayingWithSound;
+          if (video.isPlayingWithSound) {
+            video.el.play().catch(() => {});
+          }
+        }
+      } else {
+        video.isPlayingWithSound = false;
+        if (video.el) {
+          video.el.muted = true;
+        }
+      }
+    });
+  }
+
+  function getProductThumbnail(prodId: string) {
+    const p = data.products?.find((x: any) => x.id === prodId);
+    return p ? p.img : '';
+  }
+
+  function getEmbedUrl(url: string) {
+    if (!url) return '';
+    if (url.includes('youtube.com/shorts/') || url.includes('youtu.be/shorts/')) {
+      const parts = url.split('/shorts/');
+      if (parts.length > 1) {
+        const id = parts[1].split('?')[0].split('/')[0];
+        return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&rel=0`;
+      }
+    }
+    if (url.includes('youtube.com/watch')) {
+      try {
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        const v = urlParams.get('v');
+        return `https://www.youtube.com/embed/${v}?autoplay=1&mute=1&loop=1&playlist=${v}&controls=0&modestbranding=1&rel=0`;
+      } catch(e) {}
+    }
+    if (url.includes('youtu.be/')) {
+      const parts = url.split('youtu.be/');
+      if (parts.length > 1) {
+        const id = parts[1].split('?')[0];
+        return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&rel=0`;
+      }
+    }
+    return '';
+  }
 
   const instagram = [
     { img: '' }, { img: '' }, { img: '' }, { img: '' }
@@ -58,30 +158,27 @@
 <div class="landing-page">
   <!-- 1. Hero Section -->
   <section class="hero-section">
-    <div class="hero-container">
-      <div class="hero-content">
-        <span class="badge">STRONGER ROOTS • HEALTHIER HAIR</span>
-        <h1>Complete <em>Hair Regrowth</em> Kit</h1>
-        <p class="hero-desc">Our scientifically formulated 3-step system helps reduce hair fall, boost growth, and nourish your scalp for stronger, healthier hair. Clinically proven results in 90 days.</p>
-        
-        <div class="hero-question">
-          <h3>Not Sure Which Products Are Right For You?</h3>
-          <ul>
-            <li><CheckCircle size={16} color="#E04F36"/> Personalized recommendations</li>
-            <li><CheckCircle size={16} color="#E04F36"/> 2-minute assessment</li>
-          </ul>
-        </div>
-        
-        <div class="hero-actions">
-          <button class="btn btn-primary">Start Free hair Quiz &rarr;</button>
-          <button class="btn btn-secondary">Shop Collection</button>
-        </div>
-      </div>
-      <div class="hero-image-placeholder">
-        <!-- Main hero image empty placeholder -->
-        <div class="placeholder-img" style="aspect-ratio: 1/1; background-color: #f0f0f0;"></div>
-      </div>
-    </div>
+    {#if heroBanner}
+      {#key currentBannerIndex}
+        <SlideBanner
+          badge={heroBanner.BadgeText}
+          title={heroBanner.Title}
+          highlight={heroBanner.HighlightText}
+          description={heroBanner.Description}
+          promoTitle={heroBanner.PromoTitle}
+          promoPoint1={heroBanner.PromoPoint1}
+          promoPoint2={heroBanner.PromoPoint2}
+          image={heroBanner.ImageUrl}
+          variant={heroBanner.CssVariant}
+        />
+      {/key}
+    {:else}
+      <SlideBanner />
+    {/if}
+    {#if banners && banners.length > 1}
+      <button class="nav-arrow prev" onclick={prevBanner} aria-label="Previous banner">&#10094;</button>
+      <button class="nav-arrow next" onclick={nextBanner} aria-label="Next banner">&#10095;</button>
+    {/if}
   </section>
 
   <!-- 1.1 Info Banner Marquee -->
@@ -104,10 +201,10 @@
     <h2 class="section-title">Shop By Category</h2>
     <div class="category-grid">
       {#each categories as cat}
-        <div class="category-card">
-          <div class="category-img placeholder-img"></div>
+        <a href={cat.link} class="category-card" style="text-decoration: none; color: inherit; display: block;">
+          <div class="category-img" style="background-image: url('{cat.img}'); background-size: cover; background-position: center; background-repeat: no-repeat;"></div>
           <h3>{cat.name}</h3>
-        </div>
+        </a>
       {/each}
     </div>
   </section>
@@ -116,7 +213,7 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Our Best Sellers</h2>
     <div class="product-grid">
-      {#each products as product}
+      {#each products.slice(0, 3) as product}
         <div class="product-card">
           <div class="product-img-wrapper placeholder-img" style="background-image: url('{product.img}'); background-size: cover; background-position: center;">
             {#if product.badge}
@@ -150,7 +247,7 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Bundle Deals</h2>
     <div class="product-grid">
-      {#each products as product}
+      {#each products.slice(0, 3) as product}
         <div class="product-card">
           <div class="product-img-wrapper placeholder-img">
             {#if product.badge}
@@ -199,10 +296,43 @@
   <section class="video-section section-spacing">
     <h2 class="section-title">Watch It • Order It • Love It</h2>
     <div class="video-grid">
-      {#each videos as video}
-        <div class="video-card placeholder-img">
-          <div class="video-overlay">
+      {#each videos as video, idx}
+        <div class="video-card" onclick={() => toggleVideoSound(idx)}>
+          {#if getEmbedUrl(video.videoUrl)}
+            <iframe 
+              src={getEmbedUrl(video.videoUrl)} 
+              title={video.title}
+              frameborder="0" 
+              scrolling="no" 
+              allowtransparency="true" 
+              allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+              style="width: 100%; height: 100%; border: none;"
+            ></iframe>
+          {:else}
+            <video 
+              src={video.videoUrl} 
+              muted 
+              playsinline 
+              autoplay 
+              bind:this={video.el}
+              style="width: 100%; height: 100%; object-fit: cover;"
+            ></video>
+          {/if}
+          
+          <div class="video-overlay-details" style={getEmbedUrl(video.videoUrl) ? "pointer-events: none;" : ""}>
+            <!-- Product Thumbnail link if present -->
+            {#if video.productId}
+              {@const thumb = getProductThumbnail(video.productId)}
+              {#if thumb}
+                <a href="/shop" class="video-product-link" style="pointer-events: auto;" onclick={(e) => e.stopPropagation()}>
+                  <img src={thumb} alt="Linked Product" class="video-product-thumb" />
+                </a>
+              {/if}
+            {/if}
             <span class="video-title">{video.title}</span>
+            {#if !getEmbedUrl(video.videoUrl) && video.isPlayingWithSound}
+              <span class="sound-badge">🔊 Sound On</span>
+            {/if}
           </div>
         </div>
       {/each}
@@ -213,7 +343,7 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Hair Wellness</h2>
     <div class="product-grid">
-      {#each products as product}
+      {#each products.slice(0, 3) as product}
         <div class="product-card">
           <div class="product-img-wrapper placeholder-img">
             {#if product.badge}
@@ -247,7 +377,7 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Skin Wellness</h2>
     <div class="product-grid">
-      {#each products as product}
+      {#each products.slice(0, 3) as product}
         <div class="product-card">
           <div class="product-img-wrapper placeholder-img">
             {#if product.badge}
@@ -292,24 +422,32 @@
     <h2 class="section-title">Why Meni?</h2>
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon placeholder-img icon-placeholder"></div>
+        <div class="feature-icon" style="display: flex; align-items: center; justify-content: center; color: #E04F36;">
+          <Leaf size={48} />
+        </div>
         <h4>Rooted In Science, Inspired By Nature</h4>
-        <p>Our Formulations Blend Modern Science With Time-Tested Botanicals To Address Real Concerns...</p>
+        <p>Our Formulations Blend Modern Science With Time-Tested Botanicals To Address Real Concerns On Hair Care, Personal Care, And Overall Health Care Delivering Results You Can Feel And See.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon placeholder-img icon-placeholder"></div>
+        <div class="feature-icon" style="display: flex; align-items: center; justify-content: center; color: #E04F36;">
+          <FlaskConical size={48} />
+        </div>
         <h4>Scientifically Backed & Lab Tested</h4>
-        <p>Every MENI Product Is Crafted With Scientifically-Researched And Proven Actives...</p>
+        <p>Every MENI Product Is Crafted With Scientifically-Researched And Proven Actives And Rigorously Lab-Tested For Purity, Safety, And Performance, Because You Deserve Evidence-Based Care.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon placeholder-img icon-placeholder"></div>
+        <div class="feature-icon" style="display: flex; align-items: center; justify-content: center; color: #E04F36;">
+          <Heart size={48} fill="#E04F36" />
+        </div>
         <h4>Crafted For Indian Lifestyles</h4>
-        <p>We Design Products Keeping Indian Skin, Hair, Climate, And Dietary Habits In Mind...</p>
+        <p>We Design Products Keeping Indian Skin, Hair, Climate, And Dietary Habits In Mind — From Nutraceuticals To Personal Care Essentials Tailored For Your Everyday Routine.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon placeholder-img icon-placeholder"></div>
+        <div class="feature-icon" style="display: flex; align-items: center; justify-content: center; color: #E04F36;">
+          <Users size={48} />
+        </div>
         <h4>Made For Modern, Conscious Consumers</h4>
-        <p>MENI Products Are Cruelty-Free, Environmentally Responsible, And Made To Suit The Fast-Paced...</p>
+        <p>MENI Products Are Cruelty-Free, Environmentally Responsible, And Made To Suit The Fast-Paced, Health-Conscious Lifestyle Of Today's Mindful Consumers.</p>
       </div>
     </div>
   </section>
@@ -349,9 +487,19 @@
     <h2 class="section-title">Follow us on Instagram @meni.embrace_it</h2>
     <p class="section-subtitle">Explore Our Gentle Beauty Highlights From @Meni.Embrace_it</p>
     <div class="insta-grid">
-      {#each instagram as post}
-        <div class="insta-post placeholder-img"></div>
-      {/each}
+      {#if socialLinks && socialLinks.length > 0}
+        {#each socialLinks as link}
+          <a href={link.Url} target="_blank" rel="noopener noreferrer" class="insta-post placeholder-img" style="display:block; text-decoration:none; color:inherit; background-image: url('{link.ImageUrl || ''}'); background-size: cover; background-position: center;">
+            {#if !link.ImageUrl}
+              <span style="padding: 10px; word-break: break-all; font-size: 10px;">{link.Url}</span>
+            {/if}
+          </a>
+        {/each}
+      {:else}
+        {#each instagram as post}
+          <div class="insta-post placeholder-img"></div>
+        {/each}
+      {/if}
     </div>
   </section>
 
@@ -359,15 +507,15 @@
   <section class="blog-section section-spacing">
     <h2 class="section-title">Discover Wellness Insights</h2>
     <div class="blog-grid">
-      {#each blogs as blog}
-        <div class="blog-card">
+      {#each blogs.slice(0, 3) as blog}
+        <a href="/blog/{blog.id}" class="blog-card" style="text-decoration:none; color:inherit; display:block;">
           <div class="blog-img placeholder-img" style="background-image: url('{blog.img}'); background-size: cover; background-position: center;"></div>
           <div class="blog-content">
             <span class="blog-date">{blog.date}</span>
             <h4 class="blog-title">{blog.title}</h4>
             <p class="blog-excerpt">{blog.excerpt}</p>
           </div>
-        </div>
+        </a>
       {/each}
     </div>
   </section>
@@ -418,8 +566,40 @@
 
   /* Hero Section */
   .hero-section {
+    position: relative;
     background: #fdfaf6;
     padding: 40px 5%;
+  }
+  .nav-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s;
+    color: #4b5563;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .nav-arrow:hover {
+    background: white;
+    color: #111827;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+  .nav-arrow.prev {
+    left: 20px;
+  }
+  .nav-arrow.next {
+    right: 20px;
   }
   .hero-container {
     display: flex;
@@ -555,7 +735,7 @@
   }
   .category-img {
     aspect-ratio: 1/1;
-    border-radius: 50%;
+    border-radius: 16px;
     margin-bottom: 15px;
     width: 150px;
     height: 150px;
@@ -574,6 +754,9 @@
     margin: 0 auto;
   }
   .product-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
     border: 1px solid #eee;
     border-radius: 12px;
     overflow: hidden;
@@ -607,6 +790,7 @@
   .product-info {
     display: flex;
     flex-direction: column;
+    flex: 1;
     gap: 8px;
   }
   .product-rating {
@@ -630,6 +814,7 @@
     -webkit-box-orient: vertical;
   }
   .product-desc {
+    flex: 1;
     font-size: 0.85rem;
     color: var(--text-light);
   }
@@ -816,5 +1001,80 @@
     .hero-content h1 {
       font-size: 2.5rem;
     }
+  }
+
+  /* Watch It video section styling */
+  .video-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  .video-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-top: 30px;
+  }
+  .video-card {
+    position: relative;
+    aspect-ratio: 9 / 16;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #000;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    transition: transform 0.3s ease;
+  }
+  .video-card:hover {
+    transform: translateY(-6px);
+  }
+  .video-overlay-details {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%);
+    padding: 24px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .video-title {
+    color: white;
+    font-size: 1rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    margin-top: 8px;
+  }
+  .video-product-link {
+    display: inline-block;
+    background: white;
+    padding: 4px;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    transition: transform 0.2s;
+  }
+  .video-product-link:hover {
+    transform: scale(1.15);
+  }
+  .video-product-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+  .sound-badge {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    pointer-events: none;
   }
 </style>

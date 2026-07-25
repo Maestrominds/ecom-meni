@@ -2,7 +2,7 @@
   import { Calendar, User, ArrowRight } from 'lucide-svelte';
 
   let { data } = $props();
-  let { blogs } = data;
+  const blogs = $derived(data.blogs || []);
 </script>
 
 <svelte:head>
@@ -19,14 +19,14 @@
   <div class="featured-post">
     {#if blogs.length > 0}
       {@const featured = blogs[0]}
-      <div class="featured-image" style="background-image: url('{featured.cover_image_url}')"></div>
+      <div class="featured-image" style="background-image: url('{featured.cover_image_url || featured.CoverImageUrl}')"></div>
       <div class="featured-content">
         <div class="meta">
-          <span class="meta-item"><Calendar size={14} /> {featured.date}</span>
-          <span class="meta-item"><User size={14} /> {featured.author}</span>
+          <span class="meta-item"><Calendar size={14} /> {featured.created_at ? new Date(featured.created_at).toLocaleDateString() : 'Just now'}</span>
+          <span class="meta-item"><User size={14} /> Admin</span>
         </div>
         <h2>{featured.title}</h2>
-        <p>{featured.body.substring(0, 150)}...</p>
+        <p>{featured.excerpt}</p>
         <a href={`/blog/${featured.id}`} class="read-more">Read Full Article <ArrowRight size={16} /></a>
       </div>
     {/if}
@@ -35,13 +35,13 @@
   <div class="blog-grid">
     {#each blogs.slice(1) as blog (blog.id)}
       <div class="blog-card">
-        <div class="blog-image" style="background-image: url('{blog.cover_image_url}')"></div>
+        <div class="blog-image" style="background-image: url('{blog.cover_image_url || blog.CoverImageUrl}')"></div>
         <div class="blog-content">
           <div class="meta">
-            <span class="meta-item"><Calendar size={14} /> {blog.date}</span>
+            <span class="meta-item"><Calendar size={14} /> {blog.created_at ? new Date(blog.created_at).toLocaleDateString() : 'Just now'}</span>
           </div>
           <h3>{blog.title}</h3>
-          <p>{blog.body.substring(0, 100)}...</p>
+          <p>{blog.excerpt}</p>
           <a href={`/blog/${blog.id}`} class="read-more">Read More <ArrowRight size={16} /></a>
         </div>
       </div>

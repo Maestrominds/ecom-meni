@@ -2,19 +2,26 @@
   import { ArrowLeft, Save, Image as ImageIcon, UploadCloud } from 'lucide-svelte';
   import SlideBanner from '$lib/components/SlideBanner.svelte';
   import { page } from '$app/stores';
+  import { env } from '$env/dynamic/public';
+  import { goto, invalidateAll } from '$app/navigation';
+  import type { PageData } from './$types';
 
+  let { data }: { data: PageData } = $props();
+
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
   let bannerId = $page.params.id;
 
   // Form State
-  let badge = $state('STRONGER ROOTS • HEALTHIER HAIR');
-  let title = $state('Complete Hair Regrowth Kit');
-  let highlight = $state('Hair Regrowth');
-  let description = $state('Our scientifically formulated 3-step system helps reduce hair fall, boost growth, and nourish your scalp for stronger, healthier hair. Clinically proven results in 90 days.');
-  let promoTitle = $state('Not Sure Which Products Are<br>Right for You?');
-  let promoPoint1 = $state('Personalized recommendations');
-  let promoPoint2 = $state('2-minute assessment');
-  let image = $state('');
-  let variant = $state(1);
+  let badge = $state(data.banner?.BadgeText || '');
+  let title = $state(data.banner?.Title || '');
+  let highlight = $state(data.banner?.HighlightText || '');
+  let description = $state(data.banner?.Description || '');
+  let promoTitle = $state(data.banner?.PromoTitle || '');
+  let promoPoint1 = $state(data.banner?.PromoPoint1 || '');
+  let promoPoint2 = $state(data.banner?.PromoPoint2 || '');
+  let image = $state(data.banner?.ImageUrl || '');
+  let variant = $state(data.banner?.CssVariant || 1);
+  let isSaving = $state(false);
 
   const styleVariants = [
     { id: 1, name: 'Classic Fade Up', desc: 'Elegant fade-in with italic highlight.' },
@@ -24,11 +31,74 @@
     { id: 5, name: 'Pop & Bop', desc: 'Playful bouncing green highlight.' }
   ];
 
-  function handleImageUpload(e: Event) {
+  async function handleImageUpload(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files[0]) {
-      // Create a local blob URL for previewing the uploaded image instantly
-      image = URL.createObjectURL(input.files[0]);
+      const file = input.files[0];
+      image = URL.createObjectURL(file); // temp preview
+      
+      try {
+        const presignRes = await fetch(`${baseUrl}/admin/upload/presigned-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, content_type: file.type })
+        });
+        
+        if (!presignRes.ok) throw new Error('Failed to get presigned URL');
+        const { upload_url, public_url } = await presignRes.json();
+        
+        const uploadRes = await fetch(upload_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type },
+          body: file
+        });
+        
+        if (!uploadRes.ok) throw new Error('Failed to upload to storage');
+        image = public_url;
+      } catch (err) {
+        console.error(err);
+        alert("Failed to upload image. (If CORS isn't set on bucket yet, ignore and continue saving).");
+      }
+    }
+  }
+
+  async function saveBanner() {
+    isSaving = true;
+    try {
+      const payload = {
+        title,
+        highlight_text: highlight,
+        badge_text: badge,
+        description,
+        promo_title: promoTitle,
+        promo_point_1: promoPoint1,
+        promo_point_2: promoPoint2,
+        image_url: image,
+        css_variant: variant,
+        status: data.banner?.Status || 'ACTIVE',
+        sort_order: data.banner?.SortOrder || 1
+      };
+
+      const url = data.isNew 
+        ? `${baseUrl}/admin/content/banners` 
+        : `${baseUrl}/admin/content/banners/${bannerId}`;
+      
+      const res = await fetch(url, {
+        method: data.isNew ? 'POST' : 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Failed to save');
+
+      alert(`Banner successfully ${data.isNew ? 'created' : 'updated'}!`);
+      await invalidateAll();
+      goto('/admin/content');
+    } catch (e) {
+      console.error(e);
+      alert('Error saving banner');
+    } finally {
+      isSaving = false;
     }
   }
 </script>
@@ -47,8 +117,8 @@
         <div class="text-muted text-sm mt-1">Homepage hero slider / Banner #{bannerId}</div>
       </div>
     </div>
-    <button class="btn-primary">
-      <Save size={16} /> Save Changes
+    <button class="btn-primary" onclick={saveBanner} disabled={isSaving}>
+      <Save size={16} /> {isSaving ? 'Saving...' : 'Save Changes'}
     </button>
   </div>
 

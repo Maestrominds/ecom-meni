@@ -1,5 +1,8 @@
 <script lang="ts">
   import { Megaphone, Zap, Mail, MousePointerClick, Image as ImageIcon, Search } from 'lucide-svelte';
+  import { env } from '$env/dynamic/public';
+
+  let { templates = [] } = $props();
 
   const recentCampaigns = [
     { name: 'Spring Essentials Launch', sub: 'Fresh looks for a fresh season', audience: 'Main Newsletter', status: 'SENT', sent: '12,450 / 04-12', open: '32.4%', ctr: '12.1%' },
@@ -161,54 +164,71 @@
       </div>
     </div>
 
-    <!-- Right: Settings -->
+    <!-- Right: Settings & Templates -->
     <div class="builder-right">
       <div class="card p-6 mb-6">
-        <h3 class="font-bold text-dark text-lg mb-6">Campaign Settings</h3>
+        <h3 class="font-bold text-dark text-lg mb-6">Create New Template</h3>
         
-        <div class="form-group">
-          <label>Target Audience</label>
-          <select><option>Main Newsletter List</option></select>
-        </div>
-        <div class="form-group">
-          <label>Segment</label>
-          <div class="flex flex-wrap gap-8">
-            <span class="pill red">US Region x</span>
-            <span class="pill red">Active Purchasers x</span>
-            <span class="pill outline">+ Add</span>
+        <form onsubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target as HTMLFormElement;
+            const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+            const trigger = (form.elements.namedItem('trigger') as HTMLSelectElement).value;
+            const channel = (form.elements.namedItem('channel') as HTMLSelectElement).value;
+            
+            try {
+              const res = await fetch(`${env.PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/admin/templates`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
+                body: JSON.stringify({ name, trigger_event: trigger, channel, template_body: "Default body..." })
+              });
+              if(res.ok) alert('Template Created! Refresh to see it.');
+              else alert('Failed to create template');
+            } catch(e) {
+              console.error(e);
+            }
+        }}>
+          <div class="form-group">
+            <label>Template Name</label>
+            <input type="text" name="name" placeholder="E.g., Welcome Email" required />
           </div>
-        </div>
-        
-        <div class="form-group mt-6">
-          <label>Delivery Time</label>
-          <input type="text" placeholder="mm/dd/yyyy" class="mb-2" />
-          <input type="text" placeholder="--:-- --" />
-        </div>
-        <div class="form-group">
-          <label>Time Zone</label>
-          <div class="text-sm text-muted">(GMT-08:00) Pacific Time</div>
-        </div>
-        
-        <div class="flex-between mb-4">
-          <span class="font-bold text-dark text-sm">A/B Testing</span>
-          <div class="toggle-switch"></div>
-        </div>
-        <div class="flex-between">
-          <span class="font-bold text-dark text-sm">UTM Tracking</span>
-          <div class="toggle-switch"></div>
-        </div>
-      </div>
-
-      <div class="card p-6 mb-6">
-        <div class="font-bold text-dark text-sm mb-2">Bounce Rate</div>
-        <div class="font-bold text-dark text-2xl mb-2">0.82%</div>
-        <div class="progress-bar thin"><div class="fill red" style="width: 15%"></div></div>
+          <div class="form-group">
+            <label>Trigger Event</label>
+            <select name="trigger">
+              <option value="user_signup">User Signup</option>
+              <option value="order_placed">Order Placed</option>
+              <option value="order_shipped">Order Shipped</option>
+              <option value="abandoned_cart">Abandoned Cart</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Channel</label>
+            <select name="channel">
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+            </select>
+          </div>
+          
+          <button type="submit" class="btn-primary w-full">Save Template</button>
+        </form>
       </div>
 
       <div class="card p-6">
-        <div class="font-bold text-dark text-sm mb-2">Unsubscribes</div>
-        <div class="font-bold text-dark text-2xl mb-2">0.05%</div>
-        <div class="progress-bar thin"><div class="fill blue" style="width: 5%"></div></div>
+        <h3 class="font-bold text-dark text-lg mb-4">Saved Templates</h3>
+        <div class="flex flex-col gap-12">
+          {#each templates as t}
+            <div class="border-bottom pb-4">
+              <div class="font-bold text-dark text-sm">{t.name || t.Name}</div>
+              <div class="text-xs text-muted mt-1 flex-between">
+                <span>Trigger: {t.trigger_event || t.TriggerEvent}</span>
+                <span class="badge-gray">{t.channel || t.Channel}</span>
+              </div>
+            </div>
+          {/each}
+          {#if templates.length === 0}
+            <div class="text-sm text-muted text-center py-4">No templates found.</div>
+          {/if}
+        </div>
       </div>
     </div>
   </div>

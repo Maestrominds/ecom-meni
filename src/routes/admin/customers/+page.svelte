@@ -4,7 +4,7 @@
   let { data } = $props();
   
   // Transform backend data to match the UI, or fallback if fields are missing
-  let customers = $derived(data.customers.map((c: any) => ({
+  let customers = $derived((data.customers || []).map((c: any) => ({
     id: c.id,
     initials: c.name ? c.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : '??',
     name: c.name || 'Unknown',

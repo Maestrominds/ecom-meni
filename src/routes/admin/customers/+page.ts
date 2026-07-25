@@ -5,17 +5,17 @@ export const load: PageLoad = async ({ fetch }) => {
     const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
 
     try {
-        const res = await fetch(`${baseUrl}/public/products`);
+        const res = await fetch(`${baseUrl}/admin/customers`);
         if (!res.ok) {
-            throw new Error('Failed to fetch products');
+            throw new Error('Failed to fetch customers');
         }
         
-        const products = await res.json();
-        return { products: Array.isArray(products) ? products : [] };
+        const customers = await res.json();
+        return { customers: Array.isArray(customers) ? customers : [] };
     } catch (e) {
-        console.error('Error fetching products:', e);
+        console.error('Error fetching customers:', e);
         return {
-            products: []
+            customers: []
         };
     }
 };

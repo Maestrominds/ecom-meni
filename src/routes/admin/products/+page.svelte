@@ -1,7 +1,11 @@
 <script lang="ts">
-  import { Search, Download, Plus, ChevronDown } from 'lucide-svelte';
+  import { Search, Download, Plus, ChevronDown, Trash2 } from 'lucide-svelte';
+  import { env } from '$env/dynamic/public';
+  import { onMount } from 'svelte';
 
-  const products = [
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+
+  let products = $state([
     { 
       id: 1, 
       name: 'Hair Fall Control Oil', 
@@ -57,7 +61,7 @@
       status: 'Active',
       image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200&h=200&fit=crop'
     }
-  ];
+  ]);
 
   let searchTerm = $state('');
   
@@ -73,6 +77,25 @@
 
   let activeTab = $state('All');
   const tabs = ['All', 'Active', 'Draft', 'Low stock', 'Out of stock'];
+
+  async function deleteProduct(id: number | string) {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    try {
+      const res = await fetch(`${baseUrl}/admin/products/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        products = products.filter(p => p.id !== id);
+        alert("Product deleted successfully!");
+      } else {
+        alert("Delete API not implemented by backend developer yet. (Tasks added to TODO.md)");
+        products = products.filter(p => p.id !== id); // filter locally for testing
+      }
+    } catch(e) {
+      products = products.filter(p => p.id !== id);
+      alert("Deleted locally!");
+    }
+  }
 </script>
 
 <svelte:head>
@@ -90,9 +113,9 @@
       <button class="btn-outline">
         <Download size={16} /> Export
       </button>
-      <button class="btn-primary">
+      <a href="/admin/products/new" class="btn-primary" style="text-decoration: none;">
         <Plus size={16} /> Add product
-      </button>
+      </a>
     </div>
   </div>
 
@@ -154,7 +177,10 @@
                 {/if}
               </td>
               <td class="action-cell">
-                <a href="/admin/products/{product.id}" class="action-link">Edit</a>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                  <a href="/admin/products/edit/{product.id}" class="action-link" style="color: #2563eb; text-decoration: none; font-weight: 600;">Edit</a>
+                  <button onclick={() => deleteProduct(product.id)} class="btn-text-small text-red" style="color: #dc2626; border: none; background: none; font-weight: 600; cursor: pointer;">Delete</button>
+                </div>
               </td>
             </tr>
           {/each}

@@ -26,8 +26,8 @@
     {/if}
     
     <h1 class="banner-title">
-      {#if highlight && title.includes(highlight)}
-        {@html title.replace(highlight, `<span class="highlight-text">${highlight}</span>`)}
+      {#if highlight && title.toLowerCase().includes(highlight.toLowerCase())}
+        {@html title.replace(new RegExp(`(${highlight.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'), `<span class="highlight-text">$1</span>`)}
       {:else}
         {title}
       {/if}
@@ -218,7 +218,7 @@
      ========================================= */
 
   /* VARIANT 1: Standard / Fade Up (Reference Style) */
-  .variant-1 .highlight-text {
+  .variant-1 :global(.highlight-text) {
     color: #E04F36;
     font-style: italic;
   }
@@ -226,7 +226,7 @@
   .variant-1 .banner-desc { animation: fadeUp 0.8s ease 0.2s forwards; opacity: 0; }
 
   /* VARIANT 2: Typewriter Effect */
-  .variant-2 .highlight-text {
+  .variant-2 :global(.highlight-text) {
     position: relative;
     color: #E04F36;
     border-bottom: 3px solid #E04F36;
@@ -239,7 +239,7 @@
   }
 
   /* VARIANT 3: Gradient Text Animation */
-  .variant-3 .highlight-text {
+  .variant-3 :global(.highlight-text) {
     background: linear-gradient(90deg, #E04F36, #F59E0B, #E04F36);
     background-size: 200% auto;
     color: transparent;
@@ -250,7 +250,7 @@
   }
 
   /* VARIANT 4: Highlight Marker Effect */
-  .variant-4 .highlight-text {
+  .variant-4 :global(.highlight-text) {
     background: linear-gradient(104deg, rgba(250, 214, 165, 0) 0.9%, #FDE68A 2.4%, #FDE68A 98%, rgba(250, 214, 165, 0) 99%);
     padding: 0 8px;
     border-radius: 4px;
@@ -261,7 +261,7 @@
   }
 
   /* VARIANT 5: Pop & Bop */
-  .variant-5 .highlight-text {
+  .variant-5 :global(.highlight-text) {
     display: inline-block;
     color: #10B981;
     font-style: italic;

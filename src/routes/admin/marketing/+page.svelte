@@ -54,7 +54,7 @@
     {:else if activeTab === 'AFFILIATE'}
       <AffiliateTab />
     {:else if activeTab === 'EMAIL CAMPAIGNS'}
-      <EmailCampaignsTab />
+      <EmailCampaignsTab templates={data?.templates || []} />
     {:else if activeTab === 'AUTOMATION'}
       <AutomationTab />
     {/if}
