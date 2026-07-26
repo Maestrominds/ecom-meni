@@ -331,10 +331,10 @@
 
       <!-- 5. RESULTS -->
       {#if activeUserTab === 'results'}
+        {@const results = product.detail_tabs?.results_images || []}
         <div class="user-tab-pane">
           <h2 class="pane-title text-center mb-6">Visible Results</h2>
           
-          {#const results = product.detail_tabs?.results_images || []}
           {#if results.length > 0}
             <div class="results-slider-user relative">
               <button type="button" class="slider-arrow left" onclick={() => activeResultsSlide = (activeResultsSlide - 1 + results.length) % results.length}>
