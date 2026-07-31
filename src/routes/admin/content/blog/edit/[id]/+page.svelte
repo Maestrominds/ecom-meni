@@ -3,13 +3,16 @@
   import { env } from '$env/dynamic/public';
   import { goto } from '$app/navigation';
   import { uploadToCloudinary } from '$lib/utils/upload';
+  import type { PageData } from './$types';
+
+  let { data }: { data: PageData } = $props();
 
   const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
-  let title = $state('');
-  let content = $state('');
-  let author = $state('');
-  let imageUrl = $state('');
+  let title = $state(data.blog?.Title || '');
+  let content = $state(data.blog?.Body || '');
+  let author = $state(''); // Unused by backend currently
+  let imageUrl = $state(data.blog?.CoverImageUrl?.String || '');
   let isSaving = $state(false);
 
   async function handleImageUpload(e: Event) {
@@ -34,8 +37,8 @@
     
     isSaving = true;
     try {
-      const res = await fetch(`${baseUrl}/admin/blogs`, {
-        method: 'POST',
+      const res = await fetch(`${baseUrl}/admin/blogs/${data.blog.ID}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
@@ -44,9 +47,9 @@
         })
       });
       
-      if (!res.ok) throw new Error('Failed to save blog');
+      if (!res.ok) throw new Error('Failed to update blog');
       
-      alert("Blog created successfully!");
+      alert("Blog updated successfully!");
       goto('/admin/content');
     } catch (e) {
       console.error(e);
@@ -96,8 +99,8 @@
         <ArrowLeft size={20} />
       </a>
       <div>
-        <h1>Create New Blog Post</h1>
-        <p class="text-muted">Draft a new article for your customers.</p>
+        <h1>Edit Blog Post</h1>
+        <p class="text-muted">Update your article.</p>
       </div>
     </div>
     <div class="header-actions">

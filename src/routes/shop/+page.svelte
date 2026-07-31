@@ -2,33 +2,21 @@
   import ProductCard from '$lib/components/ProductCard.svelte';
   
   let { data } = $props();
-  
-  // Map backend products to the UI format required by ProductCard
-  let mappedProducts = (data.products || []).map((p: any) => {
-    let cat = 'Combo';
-    if (p.name?.toLowerCase().includes('hair')) cat = 'Hair Wellness';
-    if (p.name?.toLowerCase().includes('skin')) cat = 'Skin Wellness';
-
-    return {
-      id: p.id,
-      name: p.name,
-      price: p.base_price,
-      originalPrice: p.base_price * 1.3, // Mock original price
-      rating: p.rating || 4.5,
-      reviews: 124, // Mock reviews
-      badge: p.stock < 100 ? 'Top Seller' : '',
-      desc: p.description,
-      img: p.image_url,
-      category: cat
-    };
-  });
+  let products = $derived(data.products || []);
   
   let selectedCategory = $state('All');
   const categories = ['All', 'Hair Wellness', 'Skin Wellness', 'Combo'];
   
-  let filteredProducts = $derived(selectedCategory === 'All' 
-    ? mappedProducts 
-    : mappedProducts.filter(p => p.category === selectedCategory));
+  let filteredProducts = $derived(products.filter((p: any) => {
+    if (selectedCategory === 'All') return true;
+    const cat = (p.category || '').toLowerCase();
+    const name = (p.name || '').toLowerCase();
+    
+    if (selectedCategory === 'Hair Wellness') return cat.includes('hair') || name.includes('hair');
+    if (selectedCategory === 'Skin Wellness') return cat.includes('skin') || name.includes('skin');
+    if (selectedCategory === 'Combo') return cat.includes('combo') || name.includes('combo') || cat.includes('pack');
+    return true;
+  }));
 </script>
 
 <svelte:head>

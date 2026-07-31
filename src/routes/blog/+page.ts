@@ -3,7 +3,7 @@ import { env } from '$env/dynamic/public';
 
 export const load: PageLoad = async ({ fetch }) => {
     try {
-        const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+        const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
         const res = await fetch(`${baseUrl}/public/blogs`);
         if (!res.ok) throw new Error('Failed to fetch blogs');
         

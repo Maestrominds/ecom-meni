@@ -3,16 +3,18 @@
   import { store } from '$lib/store.svelte';
   
   let { data } = $props();
-  let { product } = data;
+  let product = $derived(data.product);
   
-  let quantity = 1;
-  let isAdding = false;
-  let added = false;
+  let quantity = $state(1);
+  let isAdding = $state(false);
+  let added = $state(false);
   
   let activeUserTab = $state('desc');
   let activeResultsSlide = $state(0);
+  let selectedGalleryIdx = $state(0);
   
-  const originalPrice = product.base_price * 1.3;
+  let allGalleryImages = $derived(product.detail_tabs?.gallery_images?.length > 0 ? product.detail_tabs.gallery_images : (product.image_url ? [product.image_url] : []));
+  let currentDisplayImage = $derived(allGalleryImages[selectedGalleryIdx] || product.image_url || '');
   
   function increaseQuantity() {
     if (quantity < product.stock) quantity++;
@@ -58,17 +60,29 @@
     <!-- Image Gallery Section -->
     <div class="product-gallery">
       <div class="main-image-container">
-        <img src={product.image_url} alt={product.name} class="main-image" />
-        {#if product.stock < 100}
-          <div class="badge-top">Top Seller</div>
+        {#if currentDisplayImage}
+          <img src={currentDisplayImage} alt={product.name} class="main-image" />
+        {:else}
+          <div class="main-image placeholder-img flex-center">
+            <span class="text-muted text-sm">No image</span>
+          </div>
         {/if}
       </div>
-      <!-- Thumbnails would go here if we had multiple images -->
-      <div class="thumbnails">
-        <div class="thumbnail active" style="background-image: url('{product.image_url}')"></div>
-        <div class="thumbnail placeholder"></div>
-        <div class="thumbnail placeholder"></div>
-      </div>
+      
+      {#if allGalleryImages.length > 0}
+        <div class="thumbnails">
+          {#each allGalleryImages as img, idx}
+            <button 
+              type="button" 
+              class="thumbnail" 
+              class:active={selectedGalleryIdx === idx} 
+              style="background-image: url('{img}')"
+              onclick={() => selectedGalleryIdx = idx}
+              aria-label={`View image ${idx + 1}`}
+            ></button>
+          {/each}
+        </div>
+      {/if}
     </div>
 
     <!-- Product Details Section -->
@@ -76,27 +90,15 @@
       <div class="category-tag">{product.category}</div>
       <h1 class="title">{product.name}</h1>
       
-      <div class="reviews-summary">
-        <div class="stars">
-          <Star size={16} fill="#F59E0B" color="#F59E0B" />
-          <Star size={16} fill="#F59E0B" color="#F59E0B" />
-          <Star size={16} fill="#F59E0B" color="#F59E0B" />
-          <Star size={16} fill="#F59E0B" color="#F59E0B" />
-          <Star size={16} fill="#E5E7EB" color="#E5E7EB" />
-        </div>
-        <span class="rating-text">{product.rating} (124 reviews)</span>
-      </div>
-      
       <div class="pricing">
-        <span class="current-price">₹{product.base_price.toFixed(2)}</span>
-        <span class="original-price">₹{originalPrice.toFixed(2)}</span>
-        <span class="discount-badge">Save {(30).toFixed(0)}%</span>
+        <span class="current-price">₹{(product.base_price || 0).toFixed(2)}</span>
       </div>
       
-      <p class="description">
-        {product.description}
-        Discover the perfect balance of science and nature with our meticulously crafted formula, designed for everyday wellness.
-      </p>
+      {#if product.description && product.description !== '""' && product.description.trim() !== ''}
+        <p class="description">
+          {product.description}
+        </p>
+      {/if}
       
       <div class="stock-status">
         <span class="indicator" class:low={product.stock < 50}></span>
@@ -109,33 +111,19 @@
         {/if}
       </div>
       
-      <hr class="divider" />
-      
       <div class="actions-wrapper">
-        <div class="quantity-selector">
-          <button onclick={decreaseQuantity} disabled={quantity <= 1}><Minus size={16} /></button>
-          <input type="number" bind:value={quantity} min="1" max={product.stock} readonly />
-          <button onclick={increaseQuantity} disabled={quantity >= product.stock}><Plus size={16} /></button>
+        <div class="quantity-cart-row">
+          <div class="quantity-selector">
+            <button onclick={decreaseQuantity} disabled={quantity <= 1}><Minus size={20} /></button>
+            <input type="number" bind:value={quantity} min="1" max={product.stock} readonly />
+            <button onclick={increaseQuantity} disabled={quantity >= product.stock}><Plus size={20} /></button>
+          </div>
+          <button class="btn-add-cart" class:adding={isAdding} class:added={added} disabled={product.stock === 0 || isAdding} onclick={addToCart}>
+            {#if isAdding} <span class="loader"></span> Adding... {:else if added} <Check size={24} /> Added to Cart {:else} Add to Cart - ₹{(product.base_price * quantity).toFixed(2)} {/if}
+          </button>
         </div>
-        
-        <button 
-          class="btn-add-cart" 
-          class:adding={isAdding}
-          class:added={added}
-          disabled={product.stock === 0 || isAdding}
-          onclick={addToCart}
-        >
-          {#if isAdding}
-            <span class="loader"></span> Adding...
-          {:else if added}
-            <Check size={20} /> Added to Cart
-          {:else}
-            Add to Cart - ₹{(product.base_price * quantity).toFixed(2)}
-          {/if}
-        </button>
-        
         <button class="btn-wishlist" aria-label="Add to wishlist">
-          <Heart size={24} color="var(--text-muted)" />
+          <Heart size={20} /> <span>Save to Wishlist</span>
         </button>
       </div>
       
@@ -149,16 +137,15 @@
           <span>Secure checkout</span>
         </div>
       </div>
-      
     </div>
-  </div>
+  </div><!-- End product-layout -->
 
-  <!-- Rich Details Tabs (Full Width) -->
+  <!-- Rich Details Tabs (Full Width Below Top Layout - Matching Figma Image 1) -->
   <div class="rich-details-tabs-container">
     <div class="user-tabs-header">
       <button class="user-tab-btn" class:active={activeUserTab === 'desc'} onclick={() => activeUserTab = 'desc'}>Product Description</button>
-      <button class="user-tab-btn" class:active={activeUserTab === 'use'} onclick={() => activeUserTab = 'use'}>How To Use</button>
-      <button class="user-tab-btn" class:active={activeUserTab === 'works'} onclick={() => activeUserTab = 'works'}>How It Works</button>
+      <button class="user-tab-btn" class:active={activeUserTab === 'use'} onclick={() => activeUserTab = 'use'}>How to Use</button>
+      <button class="user-tab-btn" class:active={activeUserTab === 'works'} onclick={() => activeUserTab = 'works'}>How it Works</button>
       <button class="user-tab-btn" class:active={activeUserTab === 'ingredients'} onclick={() => activeUserTab = 'ingredients'}>Key Ingredients</button>
       <button class="user-tab-btn" class:active={activeUserTab === 'results'} onclick={() => activeUserTab = 'results'}>Results</button>
       <button class="user-tab-btn" class:active={activeUserTab === 'certs'} onclick={() => activeUserTab = 'certs'}>Certificates</button>
@@ -168,200 +155,167 @@
       <!-- 1. PRODUCT DESCRIPTION -->
       {#if activeUserTab === 'desc'}
         <div class="user-tab-pane">
-          <h2 class="pane-title text-center">{product.detail_tabs?.product_description?.title || 'Holistic Hair Care Combo'}</h2>
-          <p class="pane-body">{product.detail_tabs?.product_description?.body || 'MENI Holistic Hair Care Combo combines to provide complete hair care from root to routine. This 3-step system helps reduce hair fall, strengthen roots, nourish the scalp and support healthier, fuller-looking hair. Visible Results in 12 Weeks with consistent use, delivering both external care and internal nourishment for long-term hair wellness.'}</p>
+          {#if product.detail_tabs?.product_description?.title}
+            <h2 class="pane-title text-center">{product.detail_tabs.product_description.title}</h2>
+          {/if}
+          {#if product.detail_tabs?.product_description?.body}
+            <p class="pane-body">{product.detail_tabs.product_description.body}</p>
+          {/if}
           
-          <div class="highlights-box">
-            <h3>Key highlights:</h3>
-            <ul>
-              {#if product.detail_tabs?.product_description?.highlights && product.detail_tabs.product_description.highlights.length > 0}
+          {#if product.detail_tabs?.product_description?.highlights && product.detail_tabs.product_description.highlights.length > 0}
+            <div class="highlights-box">
+              <h3>Key highlights:</h3>
+              <ul>
                 {#each product.detail_tabs.product_description.highlights as hl}
                   <li>{hl}</li>
                 {/each}
-              {:else}
-                <li>90% Absorption Rate Formula</li>
-                <li>Nourishes with Essential Hair Nutrients</li>
-                <li>Helps Reduce Hair Fall</li>
-                <li>Promotes Thicker, Fuller-Looking Hair</li>
-                <li>Sulphate-Free Gentle Cleansing</li>
-                <li>Hyaluronic Acid for Deep Hydration</li>
-              {/if}
-            </ul>
-          </div>
+              </ul>
+            </div>
+          {/if}
+
+          {#if product.detail_tabs?.faqs && product.detail_tabs.faqs.length > 0}
+            <div class="faq-section-user mt-12">
+              <h3 class="faq-section-title text-center mb-6">Frequently Asked Questions</h3>
+              <div class="faq-accordion-list">
+                {#each product.detail_tabs.faqs as faq}
+                  <div class="faq-item-card">
+                    <h4 class="faq-question">Q: {faq.question}</h4>
+                    <p class="faq-answer">{faq.answer}</p>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
         </div>
       {/if}
 
-      <!-- 2. HOW TO USE -->
+      <!-- 2. HOW TO USE (Figma Alternating Zig-Zag Layout - Image 2) -->
       {#if activeUserTab === 'use'}
         <div class="user-tab-pane text-center">
-          <h2 class="pane-title mb-6">{product.detail_tabs?.how_to_use?.section_title || 'How to Use'}</h2>
-          <div class="steps-grid-user">
-            {#if product.detail_tabs?.how_to_use?.steps && product.detail_tabs.how_to_use.steps.length > 0}
-              {#each product.detail_tabs.how_to_use.steps as step}
-                <div class="step-card-user">
-                  {#if step.image_url}
-                    <img src={step.image_url} alt={step.title} class="step-img-user" />
-                  {:else}
-                    <div class="step-img-user placeholder"></div>
-                  {/if}
-                  <span class="step-badge-user">Step {step.step_number}</span>
-                  <h4>{step.title}</h4>
-                  <p>{step.description}</p>
-                </div>
-              {/each}
-            {:else}
-              <!-- Fallbacks -->
-              <div class="step-card-user">
-                <div class="step-img-user placeholder-1"></div>
-                <span class="step-badge-user">Step 1</span>
-                <h4>Cleanse with Shampoo</h4>
-                <p>Apply Hyaluronic Hair Shampoo to wet hair. Massage gently into the scalp for 1-2 minutes, then rinse thoroughly.</p>
-              </div>
-              <div class="step-card-user">
-                <div class="step-img-user placeholder-2"></div>
-                <span class="step-badge-user">Step 2</span>
-                <h4>Nourish with Capsules</h4>
-                <p>Take one Marine Collagen Capsule daily with water, preferably after a meal to nourish hair roots from within.</p>
-              </div>
-              <div class="step-card-user">
-                <div class="step-img-user placeholder-3"></div>
-                <span class="step-badge-user">Step 3</span>
-                <h4>Stimulate with Serum</h4>
-                <p>Apply 2-3 drops of Min-Rich Hair Serum to dry scalp. Massage lightly and leave in. Use twice daily.</p>
-              </div>
-            {/if}
-          </div>
-        </div>
-      {/if}
+          <h2 class="pane-title mb-2">
+            {product.detail_tabs?.how_to_use?.section_title || 'How to Use'}
+          </h2>
+          <p class="pane-subtitle text-muted mb-8" style="max-width: 650px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+            Your step-by-step recovery journey, scientifically formulated for maximum follicular stimulation.
+          </p>
 
-      <!-- 3. HOW IT WORKS -->
-      {#if activeUserTab === 'works'}
-        <div class="user-tab-pane">
-          <h2 class="pane-title text-center mb-8">{product.detail_tabs?.how_it_works?.section_title || 'How It Works'}</h2>
-          
-          <div class="timeline-user">
-            {#if product.detail_tabs?.how_it_works?.steps && product.detail_tabs.how_it_works.steps.length > 0}
-              {#each product.detail_tabs.how_it_works.steps as step}
-                <div class="timeline-item-user">
-                  <div class="timeline-circle-user">{step.time_range}</div>
-                  <div class="timeline-content-user">
-                    <h4>{step.title}</h4>
+          {#if product.detail_tabs?.how_to_use?.steps && product.detail_tabs.how_to_use.steps.length > 0}
+            <div class="steps-zigzag-list">
+              {#each product.detail_tabs.how_to_use.steps as step, idx}
+                {@const stepImg = step.image_url || step.imageUrl || ''}
+                <div class="step-row" class:row-reverse={idx % 2 === 1}>
+                  <div class="step-img-box">
+                    {#if stepImg}
+                      <img src={stepImg} alt={step.title} />
+                    {:else}
+                      <div class="step-img-placeholder flex-center">
+                        <span class="text-muted text-sm">Step {step.step_number || step.stepNumber || idx + 1} Image</span>
+                      </div>
+                    {/if}
+                  </div>
+                  <div class="step-content-box">
+                    <div class="step-pill-wrapper mb-3">
+                      <span class="step-pill">Step {step.step_number || idx + 1}</span>
+                    </div>
+                    <h3>{step.title}</h3>
                     <p>{step.description}</p>
                   </div>
                 </div>
               {/each}
-            {:else}
-              <!-- Timeline default fallbacks -->
-              <div class="timeline-item-user">
-                <div class="timeline-circle-user">W1-2</div>
-                <div class="timeline-content-user">
-                  <h4>Scalp Nourishment Begins</h4>
-                  <p>The Hyaluronic Hair Shampoo gently cleanses while the Marine Collagen Capsules begin replenishing essential amino acids. You may notice reduced scalp dryness and less post-wash breakage.</p>
-                </div>
-              </div>
-              <div class="timeline-item-user">
-                <div class="timeline-circle-user">W3-4</div>
-                <div class="timeline-content-user">
-                  <h4>Hair Fall Reduction</h4>
-                  <p>DHT-blocking ingredients from the capsules start regulating dihydrotestosterone levels. The Min-Rich Hair Serum activates dormant follicles with a Minoxidil-alternative complex. Expect noticeably less shedding on comb and pillow.</p>
-                </div>
-              </div>
-              <div class="timeline-item-user">
-                <div class="timeline-circle-user">W5-8</div>
-                <div class="timeline-content-user">
-                  <h4>New Growth Visible</h4>
-                  <p>Baby hair and new growth appear along the hairline and crown. Existing strands become stronger, thicker, and more lustrous due to collagen fortification from within.</p>
-                </div>
-              </div>
-              <div class="timeline-item-user">
-                <div class="timeline-circle-user">W9-12</div>
-                <div class="timeline-content-user">
-                  <h4>Full Transformation</h4>
-                  <p>Significantly improved hair density, reduced breakage, and a healthier scalp ecosystem. Most users report 60-80% reduction in daily hair fall. The routine is now a lifestyle.</p>
-                </div>
-              </div>
-            {/if}
-          </div>
-
-          <div class="suitable-box-user mt-8">
-            <h4>Suitable For:</h4>
-            <p>{product.detail_tabs?.how_it_works?.suitable_text || 'Suitable for dry, frizzy, normal or thinning hair. Perfect for both men and women struggling with excessive hair fall and scalp dryness.'}</p>
-          </div>
+            </div>
+          {/if}
         </div>
       {/if}
 
-      <!-- 4. KEY INGREDIENTS -->
-      {#if activeUserTab === 'ingredients'}
+      <!-- 3. HOW IT WORKS (Figma Timeline - Image 1) -->
+      {#if activeUserTab === 'works'}
         <div class="user-tab-pane">
-          <h2 class="pane-title text-center mb-6">Key Ingredients</h2>
-          <div class="ingredients-grid-user">
-            {#if product.detail_tabs?.key_ingredients && product.detail_tabs.key_ingredients.length > 0}
-              {#each product.detail_tabs.key_ingredients as ing}
-                <div class="ingredient-card-user">
-                  {#if ing.image_url}
-                    <img src={ing.image_url} alt={ing.name} class="ing-img-user" />
-                  {:else}
-                    <div class="ing-img-user placeholder"></div>
-                  {/if}
-                  <h4>{ing.name}</h4>
-                  <p>{ing.benefit_description}</p>
+          {#if product.detail_tabs?.how_it_works?.section_title}
+            <h2 class="pane-title text-center mb-8">{product.detail_tabs.how_it_works.section_title}</h2>
+          {/if}
+
+          {#if product.detail_tabs?.how_it_works?.steps && product.detail_tabs.how_it_works.steps.length > 0}
+            <div class="timeline-container">
+              {#each product.detail_tabs.how_it_works.steps as step, idx}
+                {@const tr = step.time_range || step.timeRange || ''}
+                <div class="timeline-step">
+                  <div class="timeline-badge-circle">
+                    {idx + 1}
+                  </div>
+                  <div class="timeline-step-content">
+                    {#if tr}
+                      <span class="timeline-time-badge">{tr}</span>
+                    {/if}
+                    <h3 class="timeline-step-title">{step.title}</h3>
+                    <p class="timeline-step-desc">{step.description}</p>
+                  </div>
                 </div>
               {/each}
-            {:else}
-              <!-- default mock ingredients -->
-              <div class="ingredient-card-user">
-                <div class="ing-img-user placeholder-ing1"></div>
-                <h4>Marine Collagen</h4>
-                <p>Nourishes hair follicles, provides essential amino acids, and supports hair root structure from within.</p>
-              </div>
-              <div class="ingredient-card-user">
-                <div class="ing-img-user placeholder-ing2"></div>
-                <h4>Hyaluronic Acid</h4>
-                <p>Delivers deep, long-lasting hydration to the scalp, locking in moisture and preventing dryness.</p>
-              </div>
-              <div class="ingredient-card-user">
-                <div class="ing-img-user placeholder-ing3"></div>
-                <h4>Min-Rich Complex</h4>
-                <p>A natural botanical extract complex designed to stimulate circulation and promote active growth phase.</p>
-              </div>
-            {/if}
-          </div>
+            </div>
+          {/if}
+
+          {#if product.detail_tabs?.how_it_works?.suitable_text}
+            <div class="suitable-box-user mt-12 text-center">
+              <h4>Suitable For:</h4>
+              <p>{product.detail_tabs.how_it_works.suitable_text}</p>
+            </div>
+          {/if}
         </div>
       {/if}
 
-      <!-- 5. RESULTS -->
-      {#if activeUserTab === 'results'}
-        {@const results = product.detail_tabs?.results_images || []}
+      <!-- 4. KEY INGREDIENTS (Figma 3-Column Grid - Image 2) -->
+      {#if activeUserTab === 'ingredients'}
         <div class="user-tab-pane">
-          <h2 class="pane-title text-center mb-6">Visible Results</h2>
-          
+          {#if product.detail_tabs?.key_ingredients && product.detail_tabs.key_ingredients.length > 0}
+            <div class="ingredients-grid-3col">
+              {#each product.detail_tabs.key_ingredients as ing}
+                {@const img = ing.image_url || ing.imageUrl || ''}
+                {@const desc = ing.benefit_description || ing.benefitDescription || ''}
+                <div class="ingredient-card-clean">
+                  <div class="ing-icon-circle flex-center">
+                    {#if img}
+                      <img src={img} alt={ing.name} />
+                    {:else}
+                      <span class="ing-emoji">🌿</span>
+                    {/if}
+                  </div>
+                  <h4>{ing.name}</h4>
+                  {#if desc}
+                    <p>{desc}</p>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+      {/if}
+
+      <!-- 5. RESULTS GALLERY (Figma Large View - Image 3) -->
+      {#if activeUserTab === 'results'}
+        {@const results = (product.detail_tabs?.results_images || []).map((r: any) => typeof r === 'string' ? r : (r?.url || r?.image_url || r?.imageUrl || ''))}
+        <div class="user-tab-pane">
           {#if results.length > 0}
-            <div class="results-slider-user relative">
-              <button type="button" class="slider-arrow left" onclick={() => activeResultsSlide = (activeResultsSlide - 1 + results.length) % results.length}>
+            <div class="results-viewer-container">
+              <button type="button" class="results-arrow left" onclick={() => activeResultsSlide = (activeResultsSlide - 1 + results.length) % results.length}>
                 <ChevronLeft size={24} />
               </button>
-              <div class="slider-image-user-box">
-                <img src={results[activeResultsSlide]} alt="Result slide" class="slider-image-user" />
+              
+              <div class="results-image-wrapper">
+                <img src={results[activeResultsSlide]} alt="Visible result" class="results-main-image" />
               </div>
-              <button type="button" class="slider-arrow right" onclick={() => activeResultsSlide = (activeResultsSlide + 1) % results.length}>
+
+              <button type="button" class="results-arrow right" onclick={() => activeResultsSlide = (activeResultsSlide + 1) % results.length}>
                 <ChevronRight size={24} />
               </button>
             </div>
-            <div class="slider-dots">
-              {#each results as _, idx}
-                <span class="dot" class:active={idx === activeResultsSlide}></span>
-              {/each}
-            </div>
-          {:else}
-            <!-- default dummy results images slider -->
-            <div class="results-slider-user relative">
-              <div class="slider-image-user-box">
-                <div class="slider-placeholder-user">
-                  <h4>12 Weeks Transformation</h4>
-                  <p>Check back later to view customer before/after photos.</p>
-                </div>
+            
+            {#if results.length > 1}
+              <div class="results-dots">
+                {#each results as _, idx}
+                  <button type="button" class="dot" class:active={idx === activeResultsSlide} onclick={() => activeResultsSlide = idx} aria-label={`Slide ${idx+1}`}></button>
+                {/each}
               </div>
-            </div>
+            {/if}
           {/if}
         </div>
       {/if}
@@ -399,76 +353,209 @@
 </div>
 
 <style>
+  /* Base Variables and Polish */
+  :root {
+    --transition-bouncy: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --shadow-soft: 0 10px 40px -10px rgba(0,0,0,0.08);
+    --shadow-glow: 0 12px 30px rgba(229, 91, 60, 0.25);
+  }
+
   .product-page {
     max-width: 1280px;
     margin: 0 auto;
-    padding: 40px 24px 100px;
+    padding: 20px 24px 120px;
     font-family: var(--font-body);
   }
   
+  /* Breadcrumbs */
   .breadcrumb {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
-    margin-bottom: 30px;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
   }
+  .breadcrumb a { color: var(--text-dark); transition: var(--transition-smooth); }
+  .breadcrumb a:hover { color: var(--primary); }
+  .breadcrumb span { margin: 0 12px; opacity: 0.5; }
+  .breadcrumb .current { color: var(--text-muted); }
   
-  .breadcrumb a {
-    color: var(--text-dark);
-    transition: color 0.2s;
-  }
-  
-  .breadcrumb a:hover {
-    color: var(--primary);
-  }
-  
-  .breadcrumb span {
-    margin: 0 8px;
-  }
-  
-  .breadcrumb .current {
-    color: var(--text-muted);
-  }
-  
+  /* Core Layout */
   .product-layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 60px;
+    grid-template-columns: 55% 40%;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 60px;
   }
   
-  /* Gallery */
-  .product-gallery {
+  .product-gallery { width: 100%; }
+  .product-details { 
+    position: sticky; 
+    top: 120px; 
+    padding-left: 20px;
+  }
+
+  /* Full Width Rich Details Tabs - Matching Figma Image 1 */
+  .rich-details-tabs-container {
+    width: 100%;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  
+  .user-tabs-header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    border-bottom: 2px solid #E5E7EB;
+    margin-bottom: 48px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  
+  .user-tab-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #6B7280;
+    cursor: pointer;
+    padding: 16px 8px;
+    position: relative;
+    transition: all 0.25s ease;
+  }
+  
+  .user-tab-btn:hover { 
+    color: var(--primary); 
+    transform: translateY(-1px);
+  }
+  
+  .user-tab-btn.active {
+    color: var(--primary);
+    font-weight: 800;
+  }
+
+  .user-tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px 3px 0 0;
+    box-shadow: 0 2px 8px rgba(229, 91, 60, 0.4);
+  }
+
+  .user-tab-pane {
+    animation: fadeInTab 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  @keyframes fadeInTab {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* How to Use - Figma Alternating Zig-Zag Layout (Image 2) */
+  .steps-zigzag-list {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 60px;
+    max-width: 1000px;
+    margin: 40px auto 0;
+  }
+
+  .step-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    text-align: left;
+  }
+
+  .step-row.row-reverse .step-img-box {
+    order: 2;
+  }
+
+  .step-row.row-reverse .step-content-box {
+    order: 1;
+  }
+
+  .step-img-box {
+    width: 100%;
+    aspect-ratio: 4/3;
+    border-radius: 24px;
+    overflow: hidden;
+    background: #F3F4F6;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .step-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .step-img-placeholder {
+    width: 100%;
+    height: 100%;
+    background: #E5E7EB;
+  }
+
+  .step-content-box h3 {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 16px;
+    line-height: 1.25;
+  }
+
+  .step-content-box p {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #4B5563;
+    margin-bottom: 20px;
+  }
+
+  .step-pill {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary) 0%, #D04A2B 100%);
+    color: white;
+    padding: 6px 18px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
   
+  /* Gallery Reimagined */
   .main-image-container {
     position: relative;
-    border-radius: 16px;
+    border-radius: 24px;
     overflow: hidden;
-    background: #F9FAFB;
+    background: #F8F9FA;
     aspect-ratio: 4/5;
-    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-soft);
+    border: 1px solid rgba(0,0,0,0.03);
+    margin-bottom: 24px;
   }
   
   .main-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform 0.6s ease;
   }
   
-  .badge-top {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    background: #3b82f6;
-    color: white;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  .main-image-container:hover .main-image {
+    transform: scale(1.05);
   }
   
   .thumbnails {
@@ -479,135 +566,123 @@
   
   .thumbnail {
     aspect-ratio: 1/1;
-    border-radius: 12px;
+    border-radius: 16px;
     background-size: cover;
     background-position: center;
     border: 2px solid transparent;
     cursor: pointer;
-    background-color: #F3F4F6;
+    background-color: #F8F9FA;
+    transition: var(--transition-smooth);
+    opacity: 0.7;
   }
   
-  .thumbnail.active {
+  .thumbnail:hover, .thumbnail.active {
+    opacity: 1;
     border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
   }
   
-  .thumbnail.placeholder {
-    opacity: 0.5;
-  }
-  
-  /* Details */
+  /* Product Details Panel */
   .category-tag {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--primary);
-    font-weight: 600;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+    display: inline-block;
+    padding: 6px 14px;
+    background: rgba(229, 91, 60, 0.1);
+    border-radius: 20px;
   }
   
   .title {
-    font-size: 2.5rem;
-    font-family: var(--font-heading);
-    color: var(--text-dark);
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #111827;
     line-height: 1.2;
-    margin-bottom: 16px;
-  }
-  
-  .reviews-summary {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  
-  .stars {
-    display: flex;
-    gap: 4px;
-  }
-  
-  .rating-text {
-    font-size: 0.95rem;
-    color: var(--text-muted);
+    margin-bottom: 20px;
+    letter-spacing: -0.01em;
   }
   
   .pricing {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 16px;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
+    margin-bottom: 32px;
   }
   
   .current-price {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-dark);
-  }
-  
-  .original-price {
-    font-size: 1.2rem;
-    color: var(--text-muted);
-    text-decoration: line-through;
-  }
-  
-  .discount-badge {
-    background: #FEF2F2;
-    color: #DC2626;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: -0.01em;
   }
   
   .description {
     font-size: 1.05rem;
-    color: var(--text-muted);
+    color: #4B5563;
     line-height: 1.7;
-    margin-bottom: 24px;
+    margin-bottom: 28px;
   }
   
   .stock-status {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     font-size: 0.95rem;
-    font-weight: 500;
+    font-weight: 600;
     color: #059669;
-    margin-bottom: 32px;
+    margin-bottom: 40px;
+    padding: 12px 20px;
+    background: #F0FDF4;
+    border-radius: 12px;
+    border: 1px solid #DCFCE7;
   }
   
   .indicator {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: #059669;
+    box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(5, 150, 105, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
   }
   
-  .indicator.low { background: #D97706; }
+  .indicator.low { background: #D97706; box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.2); }
   .text-warning { color: #D97706; }
   .text-danger { color: #DC2626; }
   
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border-light);
-    margin: 32px 0;
-  }
-  
-  /* Actions */
+  /* Add To Cart Area */
   .actions-wrapper {
     display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  
+  .quantity-cart-row {
+    display: flex;
     gap: 16px;
-    margin-bottom: 32px;
   }
   
   .quantity-selector {
     display: flex;
     align-items: center;
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
-    height: 56px;
+    border: 2px solid #E5E7EB;
+    border-radius: 16px;
+    height: 64px;
     background: white;
+    width: 140px;
+    transition: var(--transition-smooth);
   }
+  .quantity-selector:focus-within { border-color: var(--primary); }
   
   .quantity-selector button {
     width: 48px;
@@ -615,76 +690,79 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-dark);
+    color: #111827;
+    background: transparent;
+    border: none;
+    cursor: pointer;
   }
-  
-  .quantity-selector button:disabled {
-    color: #D1D1D6;
-  }
+  .quantity-selector button:hover { color: var(--primary); }
   
   .quantity-selector input {
-    width: 48px;
+    flex: 1;
     text-align: center;
     border: none;
     font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-dark);
-    -moz-appearance: textfield;
-  }
-  
-  .quantity-selector input::-webkit-outer-spin-button,
-  .quantity-selector input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+    font-weight: 700;
+    color: #111827;
+    background: transparent;
+    outline: none;
   }
   
   .btn-add-cart {
     flex: 1;
-    background: var(--primary);
+    background: linear-gradient(135deg, var(--primary) 0%, #D04A2B 100%);
     color: white;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: 600;
+    border-radius: 16px;
+    font-size: 1.05rem;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    transition: var(--transition-smooth);
+    gap: 12px;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-glow);
+    transition: var(--transition-bouncy);
+    height: 64px;
   }
   
   .btn-add-cart:hover:not(:disabled) {
-    background: var(--primary-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(229, 91, 60, 0.2);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(229, 91, 60, 0.35);
   }
-  
-  .btn-add-cart.adding { background: #D04A2B; opacity: 0.8; }
-  .btn-add-cart.added { background: #059669; }
+  .btn-add-cart:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+  .btn-add-cart.added { background: #059669; box-shadow: 0 12px 30px rgba(5, 150, 105, 0.3); }
   
   .btn-wishlist {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
-    border: 1px solid var(--border-light);
+    height: 64px;
+    border-radius: 16px;
+    border: 2px solid #E5E7EB;
     background: white;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: #4B5563;
+    font-weight: 600;
+    font-size: 1.05rem;
+    gap: 10px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
   }
-  
   .btn-wishlist:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: #F43F5E;
+    color: #F43F5E;
+    background: #FFF1F2;
   }
   
   /* Trust Badges */
   .trust-badges {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 40px;
-    background: #FAFAFA;
-    padding: 20px;
-    border-radius: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: #F9FAFB;
+    padding: 24px;
+    border-radius: 20px;
+    border: 1px solid #F3F4F6;
   }
   
   .badge-item {
@@ -692,400 +770,402 @@
     align-items: center;
     gap: 12px;
     font-size: 0.95rem;
-    font-weight: 500;
-    color: var(--text-dark);
+    font-weight: 600;
+    color: #374151;
   }
   
-  /* Accordion */
-  .loader {
-    width: 18px;
-    height: 18px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    border-top-color: white;
-    animation: spin 1s ease-in-out infinite;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  /* User Tabs Styling */
+  /* Tab Segmented Controls */
   .rich-details-tabs-container {
-    margin-top: 60px;
-    border-top: 1px solid var(--border-light);
-    padding-top: 40px;
+    padding-top: 20px;
   }
-
+  
   .user-tabs-header {
     display: flex;
-    justify-content: center;
-    border-bottom: 2px solid var(--border-light);
-    margin-bottom: 40px;
+    background: #F3F4F6;
+    padding: 8px;
+    border-radius: 100px;
+    margin-bottom: 48px;
     overflow-x: auto;
     white-space: nowrap;
-    gap: 24px;
-    padding-bottom: 8px;
+    gap: 8px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
   }
-
+  
   .user-tab-btn {
-    background: none;
+    background: transparent;
     border: none;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 12px 8px;
-    position: relative;
-    transition: var(--transition-smooth);
-  }
-
-  .user-tab-btn:hover {
-    color: var(--primary);
-  }
-
-  .user-tab-btn.active {
-    color: var(--primary);
-  }
-
-  .user-tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: var(--primary);
-    border-radius: 2px;
-  }
-
-  .user-tab-pane {
-    max-width: 800px;
-    margin: 0 auto;
-    animation: fadeIn 0.3s ease;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .pane-title {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 20px;
-  }
-
-  .pane-body {
-    font-size: 1.05rem;
-    line-height: 1.8;
-    color: var(--text-muted);
-    margin-bottom: 30px;
-  }
-
-  .highlights-box {
-    background: #FAFAFA;
-    padding: 24px;
-    border-radius: 12px;
-    border: 1px solid var(--border-light);
-  }
-
-  .highlights-box h3 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 16px;
-  }
-
-  .highlights-box ul {
-    list-style-type: disc;
-    padding-left: 20px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px 24px;
-  }
-
-  .highlights-box li {
     font-size: 1rem;
-    color: var(--text-muted);
-  }
-
-  /* Steps List */
-  .steps-grid-user {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-  }
-
-  .step-card-user {
-    background: #FAFAFA;
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
-    padding: 24px;
+    font-weight: 600;
+    color: #6B7280;
+    cursor: pointer;
+    padding: 12px 24px;
+    border-radius: 100px;
+    transition: var(--transition-smooth);
+    flex: 1;
     text-align: center;
   }
+  
+  .user-tab-btn:hover { color: #111827; }
+  
+  .user-tab-btn.active {
+    background: white;
+    color: #111827;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  }
+  
+  .user-tab-pane {
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .pane-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 32px;
+    letter-spacing: -0.02em;
+  }
+  
+  .pane-body {
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: #4B5563;
+    margin-bottom: 40px;
+  }
+  
+  .highlights-box {
+    background: linear-gradient(145deg, #F9FAFB 0%, #F3F4F6 100%);
+    padding: 40px;
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.8);
+    box-shadow: var(--shadow-soft);
+  }
+  .highlights-box h3 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin-bottom: 24px;
+    color: #111827;
+  }
+  .highlights-box ul {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 32px;
+    list-style: none;
+    padding: 0;
+  }
+  .highlights-box li {
+    font-size: 1.05rem;
+    color: #4B5563;
+    position: relative;
+    padding-left: 28px;
+  }
+  .highlights-box li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--primary);
+    font-weight: 800;
+  }
+  
+  /* How It Works - Timeline (Figma Image 1) */
+  .timeline-container {
+    position: relative;
+    max-width: 800px;
+    margin: 40px auto 0;
+    padding-left: 20px;
+  }
 
-  .step-img-user {
-    width: 100%;
-    aspect-ratio: 1/1;
-    border-radius: 12px;
-    object-fit: cover;
-    margin-bottom: 16px;
+  .timeline-container::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    bottom: 40px;
+    left: 35px;
+    width: 2px;
     background: #E5E7EB;
   }
 
-  .step-badge-user {
-    display: inline-block;
-    background: rgba(229, 91, 60, 0.1);
-    color: var(--primary);
-    font-size: 0.8rem;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-bottom: 12px;
-  }
-
-  .step-card-user h4 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 8px;
-  }
-
-  .step-card-user p {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: var(--text-muted);
-  }
-
-  /* Timeline */
-  .timeline-user {
+  .timeline-step {
     position: relative;
-    padding-left: 60px;
+    display: flex;
+    align-items: flex-start;
+    gap: 32px;
+    margin-bottom: 48px;
   }
 
-  .timeline-user::before {
-    content: '';
-    position: absolute;
-    left: 24px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--border-light);
-  }
-
-  .timeline-item-user {
-    position: relative;
-    margin-bottom: 40px;
-  }
-
-  .timeline-circle-user {
-    position: absolute;
-    left: -60px;
-    width: 48px;
-    height: 48px;
+  .timeline-badge-circle {
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
-    border: 2px solid var(--primary);
     background: white;
+    border: 2px solid var(--primary);
     color: var(--primary);
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.75rem;
+    font-weight: 800;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    z-index: 2;
+    margin-top: 2px;
+    box-shadow: 0 0 0 4px white;
   }
 
-  .timeline-content-user h4 {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 8px;
+  .timeline-step-content {
+    text-align: left;
   }
 
-  .timeline-content-user p {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: var(--text-muted);
-  }
-
-  .suitable-box-user {
-    background: #FAFAFA;
-    padding: 20px;
-    border-radius: 12px;
-    border-left: 4px solid var(--primary);
-  }
-
-  .suitable-box-user h4 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--text-dark);
+  .timeline-time-badge {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--primary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
     margin-bottom: 6px;
   }
 
-  .suitable-box-user p {
-    font-size: 0.95rem;
-    color: var(--text-muted);
+  .timeline-step-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 10px;
+    line-height: 1.3;
   }
 
-  /* Ingredients */
-  .ingredients-grid-user {
+  .timeline-step-desc {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: #4B5563;
+  }
+
+  /* Key Ingredients - 3 Column Grid (Figma Image 2) */
+  .ingredients-grid-3col {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
+    max-width: 1050px;
+    margin: 30px auto 0;
   }
 
-  .ingredient-card-user {
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
-    padding: 20px;
-    text-align: center;
+  .ingredient-card-clean {
     background: white;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-  }
-
-  .ing-img-user {
-    width: 100%;
-    aspect-ratio: 4/3;
-    border-radius: 12px;
-    object-fit: cover;
-    margin-bottom: 16px;
-    background: #E5E7EB;
-  }
-
-  .ingredient-card-user h4 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 8px;
-  }
-
-  .ingredient-card-user p {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    color: var(--text-muted);
-  }
-
-  /* Results Slider */
-  .results-slider-user {
-    background: #000;
+    border: 1px solid #E5E7EB;
     border-radius: 16px;
-    height: 400px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    padding: 36px 24px;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .slider-image-user-box {
+  .ingredient-card-clean:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+  }
+
+  .ing-icon-circle {
+    width: 105px;
+    height: 105px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 20px;
+    background: #F9FAFB;
+    border: 3px solid #F3F4F6;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    transition: transform 0.3s ease;
+  }
+
+  .ingredient-card-clean:hover .ing-icon-circle {
+    transform: scale(1.05);
+  }
+
+  .ing-icon-circle img {
     width: 100%;
     height: 100%;
+    object-fit: cover;
+  }
+
+  .ing-emoji {
+    font-size: 2.6rem;
+  }
+
+  .ingredient-card-clean h4 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 10px;
+  }
+
+  .ingredient-card-clean p {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #6B7280;
+  }
+
+  /* Results Gallery (Figma Image 3) */
+  .results-viewer-container {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 40px;
+    max-width: 900px;
+    margin: 40px auto 0;
   }
 
-  .slider-image-user {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
+  .results-image-wrapper {
+    max-width: 650px;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    background: #000;
   }
 
-  .slider-arrow {
-    position: absolute;
-    background: rgba(255,255,255,0.8);
-    border: none;
-    border-radius: 50%;
+  .results-main-image {
+    width: 100%;
+    max-height: 480px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .results-arrow {
     width: 48px;
     height: 48px;
+    border-radius: 50%;
+    border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 10;
-    transition: background 0.2s;
+    transition: transform 0.2s, background-color 0.2s;
+    flex-shrink: 0;
   }
 
-  .slider-arrow:hover {
-    background: white;
+  .results-arrow.left {
+    background: #E5E7EB;
+    color: #4B5563;
+  }
+  .results-arrow.left:hover {
+    background: #D1D5DB;
   }
 
-  .slider-arrow.left { left: 24px; }
-  .slider-arrow.right { right: 24px; }
+  .results-arrow.right {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 15px rgba(229, 91, 60, 0.4);
+  }
+  .results-arrow.right:hover {
+    transform: scale(1.05);
+  }
 
-  .slider-dots {
+  .results-dots {
     display: flex;
     justify-content: center;
     gap: 8px;
-    margin-top: 16px;
+    margin-top: 24px;
   }
-
-  .dot {
-    width: 8px;
-    height: 8px;
+  .results-dots .dot {
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: var(--border-light);
-    transition: background 0.2s;
+    background: #D1D5DB;
+    border: none;
+    cursor: pointer;
   }
-
-  .dot.active {
+  .results-dots .dot.active {
     background: var(--primary);
+    width: 24px;
+    border-radius: 10px;
   }
 
-  .slider-placeholder-user {
-    color: white;
-    text-align: center;
-    padding: 40px;
+  /* FAQ Section under Product Description */
+  .faq-section-user {
+    margin-top: 48px;
+    padding-top: 36px;
+    border-top: 1px solid #E5E7EB;
   }
 
-  /* Certificates */
-  .certs-grid-user {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+  .faq-section-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 24px;
   }
 
-  .cert-item-user {
-    background: #FAFAFA;
-    border: 1px solid var(--border-light);
-    padding: 24px 16px;
+  .faq-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 850px;
+    margin: 0 auto;
+  }
+
+  .faq-item-card {
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
     border-radius: 12px;
+    padding: 20px 24px;
+    text-align: left;
   }
 
-  .cert-icon-placeholder {
-    font-size: 2.5rem;
-    margin-bottom: 12px;
-  }
-
-  .cert-item-user h4 {
-    font-size: 1.05rem;
+  .faq-question {
+    font-size: 1.1rem;
     font-weight: 700;
-    color: var(--text-dark);
-    margin-bottom: 6px;
+    color: #111827;
+    margin-bottom: 8px;
   }
 
-  .cert-item-user p {
-    font-size: 0.85rem;
-    line-height: 1.4;
-    color: var(--text-muted);
+  .faq-answer {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #4B5563;
+    margin: 0;
   }
 
-  @media (max-width: 900px) {
+  /* Responsive */
+  @media (max-width: 1024px) {
     .product-layout {
       grid-template-columns: 1fr;
       gap: 40px;
     }
-    
-    .steps-grid-user, .ingredients-grid-user {
-      grid-template-columns: 1fr;
+    .product-details {
+      position: static;
+      padding-left: 0;
     }
-
-    .certs-grid-user {
+    .step-row {
+      grid-template-columns: 1fr;
+      gap: 24px;
+    }
+    .step-row.row-reverse .step-img-box {
+      order: 1;
+    }
+    .step-row.row-reverse .step-content-box {
+      order: 2;
+    }
+    .ingredients-grid-3col {
       grid-template-columns: repeat(2, 1fr);
     }
-
-    .highlights-box ul {
+  }
+  
+  @media (max-width: 768px) {
+    .ingredients-grid-3col, .highlights-box ul {
       grid-template-columns: 1fr;
+    }
+    .quantity-cart-row { flex-direction: column; }
+    .quantity-selector { width: 100%; }
+    .user-tabs-header {
+      justify-content: flex-start;
+      gap: 20px;
+    }
+    .results-viewer-container {
+      gap: 12px;
+    }
+    .results-arrow {
+      width: 36px;
+      height: 36px;
     }
   }
 </style>
+

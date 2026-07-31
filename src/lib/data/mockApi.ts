@@ -1,12 +1,16 @@
+import { env } from '$env/dynamic/public';
+
 export interface Product {
     id: string;
     name: string;
-    category: 'Hair Wellness' | 'Skin Wellness' | 'Combo';
+    category: string;
     base_price: number;
+    compare_price?: number;
+    sku?: string;
     stock: number;
     description: string;
     image_url: string;
-    rating: number;
+    detail_tabs: any;
 }
 
 export interface Order {
@@ -26,104 +30,124 @@ export interface Blog {
     author: string;
 }
 
-// Mock Data Stores
-export const mockProducts: Product[] = [
-    {
-        id: 'p-1',
-        name: 'Advanced Hair Growth Serum',
-        category: 'Hair Wellness',
-        base_price: 49.99,
-        stock: 120,
-        description: 'Clinically proven to support thicker, fuller hair.',
-        image_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600&auto=format&fit=crop',
-        rating: 4.8
-    },
-    {
-        id: 'p-2',
-        name: 'Revitalizing Scalp Shampoo',
-        category: 'Hair Wellness',
-        base_price: 24.99,
-        stock: 85,
-        description: 'Deep cleansing shampoo infused with natural botanical extracts.',
-        image_url: 'https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?q=80&w=600&auto=format&fit=crop',
-        rating: 4.5
-    },
-    {
-        id: 'p-3',
-        name: 'Vitamin C Brightening Serum',
-        category: 'Skin Wellness',
-        base_price: 39.99,
-        stock: 200,
-        description: 'Powerful antioxidant serum for a radiant complexion.',
-        image_url: 'https://images.unsplash.com/photo-1620916297397-a4a5402a3c6c?q=80&w=600&auto=format&fit=crop',
-        rating: 4.9
-    },
-    {
-        id: 'p-4',
-        name: 'Hydrating Night Cream',
-        category: 'Skin Wellness',
-        base_price: 34.99,
-        stock: 60,
-        description: 'Intense moisture lock technology for overnight skin repair.',
-        image_url: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=600&auto=format&fit=crop',
-        rating: 4.7
-    },
-    {
-        id: 'p-5',
-        name: 'Ultimate Glow Combo',
-        category: 'Combo',
-        base_price: 65.00,
-        stock: 45,
-        description: 'The perfect pairing of our best-selling serum and night cream.',
-        image_url: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?q=80&w=600&auto=format&fit=crop',
-        rating: 5.0
-    }
-];
+declare const Buffer: any;
 
-export const mockBlogs: Blog[] = [
-    {
-        id: 'b-1',
-        title: '5 Secrets to Naturally Thicker Hair',
-        cover_image_url: 'https://images.unsplash.com/photo-1522337660859-02fbefca4702?q=80&w=800&auto=format&fit=crop',
-        body: 'Discover the holistic approach to achieving the thick, voluminous hair you have always wanted...',
-        date: '2026-07-15',
-        author: 'Dr. Sarah Jenkins'
-    },
-    {
-        id: 'b-2',
-        title: 'Demystifying Vitamin C for Your Skin',
-        cover_image_url: 'https://images.unsplash.com/photo-1615397323136-1200155b1f5e?q=80&w=800&auto=format&fit=crop',
-        body: 'Vitamin C is everywhere in skincare, but what does it actually do? Let us break down the science...',
-        date: '2026-07-10',
-        author: 'Emma Davis, Esthetician'
-    }
-];
+// Decode a Go []byte JSON field.
+// The Go backend returns []byte fields as base64-encoded strings inside JSON.
+// We need to: base64-decode → utf8 string → JSON.parse
+function decodeGoBytes(raw: any): any {
+    if (raw == null) return null;
+    // Already a JS object/array
+    if (typeof raw === 'object') return raw;
+    if (typeof raw !== 'string') return null;
 
-// Mock API Service (to be replaced by direct Go Fiber API calls in +page.server.ts later)
+    let str = raw;
+
+    // If it doesn't look like JSON, it's base64-encoded
+    if (!str.startsWith('{') && !str.startsWith('[') && !str.startsWith('"')) {
+        // Decode base64 → utf8
+        try {
+            if (typeof Buffer !== 'undefined') {
+                // Node.js / SvelteKit SSR
+                str = Buffer.from(str, 'base64').toString('utf8');
+            } else {
+                // Browser
+                str = decodeURIComponent(
+                    Array.from(atob(str))
+                        .map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+                        .join('')
+                );
+            }
+        } catch {
+            return null;
+        }
+    }
+
+    // Now parse the JSON string
+    try {
+        return JSON.parse(str);
+    } catch {
+        // It decoded to a plain string (not JSON), return as-is
+        return str;
+    }
+}
+
+function mapProduct(p: any): Product {
+    const price = parseFloat(p.BasePrice ?? p.base_price ?? p.Price ?? p.price) || 0;
+    const comparePrice = parseFloat(p.ComparePrice ?? p.compare_price) || 0;
+
+    // Decode description
+    let description = '';
+    try {
+        const decoded = decodeGoBytes(p.DescriptionJson ?? p.description_json);
+        if (typeof decoded === 'string') description = decoded;
+    } catch { /* keep empty */ }
+    if (!description && typeof p.description === 'string') {
+        description = p.description;
+    }
+
+    // Decode detail_tabs
+    let detail_tabs: any = null;
+    try {
+        detail_tabs = decodeGoBytes(p.DetailTabs ?? p.detail_tabs);
+    } catch { /* keep null */ }
+
+    const imageUrl = p.ImageUrl || p.image_url || detail_tabs?.image_url || detail_tabs?.gallery_images?.[0] || '';
+    const sku = p.Sku || p.sku || detail_tabs?.sku || '';
+
+    return {
+        id: p.ID || p.id || '',
+        name: p.Name || p.name || 'Unnamed Product',
+        category: p.Category || p.category || '',
+        base_price: price,
+        compare_price: comparePrice > 0 ? comparePrice : (detail_tabs?.compare_price ? parseFloat(detail_tabs.compare_price) : undefined),
+        sku: sku || undefined,
+        stock: p.Stock ?? p.stock ?? 0,
+        description,
+        image_url: imageUrl,
+        detail_tabs
+    };
+}
+
+const getBaseUrl = () => env.PUBLIC_API_URL?.trim() || 'https://meni-server-sipl.onrender.com/api';
+
 export const api = {
     products: {
         getAll: async (): Promise<Product[]> => {
-            // Simulate network delay
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return [...mockProducts];
+            try {
+                const res = await fetch(`${getBaseUrl()}/public/products`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                return (data || []).map(mapProduct);
+            } catch (e) {
+                console.error('[api] Failed to fetch products:', e);
+                return [];
+            }
         },
         getById: async (id: string): Promise<Product | undefined> => {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            return mockProducts.find(p => p.id === id);
+            // Fetch all and find — since no single-product endpoint exists yet
+            const all = await api.products.getAll();
+            return all.find(p => p.id === id);
         },
         getByCategory: async (category: string): Promise<Product[]> => {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return mockProducts.filter(p => p.category === category);
+            const all = await api.products.getAll();
+            const term = category.toLowerCase().trim();
+            return all.filter(p => {
+                const cat = (p.category || '').toLowerCase();
+                const name = (p.name || '').toLowerCase();
+                if (term.includes('hair')) return cat.includes('hair') || name.includes('hair');
+                if (term.includes('skin')) return cat.includes('skin') || name.includes('skin');
+                if (term.includes('combo')) return cat.includes('combo') || name.includes('combo') || cat.includes('pack');
+                return cat.includes(term) || name.includes(term);
+            });
         }
     },
     blogs: {
         getAll: async (): Promise<Blog[]> => {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return [...mockBlogs];
+            return [];
         },
-        getById: async (id: string): Promise<Blog | undefined> => {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            return mockBlogs.find(b => b.id === id);
+        getById: async (_id: string): Promise<Blog | undefined> => {
+            return undefined;
         }
     }
 };

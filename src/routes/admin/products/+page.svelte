@@ -1,85 +1,62 @@
 <script lang="ts">
   import { Search, Download, Plus, ChevronDown, Trash2 } from 'lucide-svelte';
   import { env } from '$env/dynamic/public';
-  import { onMount } from 'svelte';
+  import type { PageData } from './$types';
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+  let { data }: { data: PageData } = $props();
 
-  let products = $state([
-    { 
-      id: 1, 
-      name: 'Hair Fall Control Oil', 
-      variants: '2 variants', 
-      sku: 'MN-HFO-100', 
-      category: 'Hair Care', 
-      price: '₹599', 
-      stock: 142, 
-      status: 'Active',
-      image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200&h=200&fit=crop'
-    },
-    { 
-      id: 2, 
-      name: 'Hair Fall Control Oil', 
-      variants: '2 variants', 
-      sku: 'MN-HFO-100', 
-      category: 'Hair Care', 
-      price: '₹599', 
-      stock: 142, 
-      status: 'Active',
-      image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200&h=200&fit=crop'
-    },
-    { 
-      id: 3, 
-      name: 'Hair Fall Control Oil', 
-      variants: '2 variants', 
-      sku: 'MN-HFO-100', 
-      category: 'Hair Care', 
-      price: '₹599', 
-      stock: 142, 
-      status: 'Active',
-      image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200&h=200&fit=crop'
-    },
-    { 
-      id: 4, 
-      name: 'Hair Fall Control Oil', 
-      variants: '2 variants', 
-      sku: 'MN-HFO-100', 
-      category: 'Hair Care', 
-      price: '₹599', 
-      stock: 142, 
-      status: 'Active',
-      image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200&h=200&fit=crop'
-    },
-    { 
-      id: 5, 
-      name: 'Hair Fall Control Oil', 
-      variants: '2 variants', 
-      sku: 'MN-HFO-100', 
-      category: 'Hair Care', 
-      price: '₹599', 
-      stock: 142, 
-      status: 'Active',
-      image: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=200&h=200&fit=crop'
-    }
-  ]);
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+
+  let products = $state(data.products ? data.products.map((p: any) => {
+    const id = p.ID || p.id || '';
+    const stock = p.Stock ?? p.stock ?? 0;
+    const basePrice = parseFloat(p.BasePrice ?? p.base_price ?? p.Price ?? p.price) || 0;
+    return {
+      id,
+      name: p.Name || p.name || 'Unnamed Product',
+      category: p.Category || p.category || 'Uncategorized',
+      price: `₹${basePrice.toFixed(0)}`,
+      stock,
+      status: stock > 0 ? 'In stock' : 'Out of stock',
+      image: p.ImageUrl || p.image_url || p.image || null,
+      sku: p.Sku || p.sku || ''
+    };
+  }) : []);
 
   let searchTerm = $state('');
   
+  // Dynamic counts for subtitle
+  let totalCount = $derived(products.length);
+  let outOfStockCount = $derived(products.filter(p => p.status === 'Out of stock').length);
+
   let filteredProducts = $derived.by(() => {
+    let list = products;
+    // Apply tab filter
+    if (activeTab !== 'All') {
+      list = list.filter(p => p.status === activeTab);
+    }
+    // Apply search filter
     if (searchTerm) {
-      return products.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      list = list.filter(p =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.sku.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    return products;
+    return list;
   });
 
   let activeTab = $state('All');
-  const tabs = ['All', 'Active', 'Draft', 'Low stock', 'Out of stock'];
+  const tabs = ['All', 'In stock', 'Out of stock'];
+
+  let deleteError = $state('');
 
   async function deleteProduct(id: number | string) {
+    if (!id) {
+      alert("Cannot delete: Missing product ID.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this product?")) return;
+    deleteError = '';
     try {
       const res = await fetch(`${baseUrl}/admin/products/${id}`, {
         method: 'DELETE'
@@ -88,12 +65,13 @@
         products = products.filter(p => p.id !== id);
         alert("Product deleted successfully!");
       } else {
-        alert("Delete API not implemented by backend developer yet. (Tasks added to TODO.md)");
-        products = products.filter(p => p.id !== id); // filter locally for testing
+        const body = await res.json().catch(() => ({}));
+        deleteError = body.error || `Failed to delete (HTTP ${res.status})`;
+        alert(deleteError);
       }
     } catch(e) {
-      products = products.filter(p => p.id !== id);
-      alert("Deleted locally!");
+      deleteError = 'Network error — backend may be offline.';
+      alert(deleteError);
     }
   }
 </script>
@@ -107,7 +85,7 @@
   <div class="page-header">
     <div>
       <h1>Products</h1>
-      <p class="subtitle">6 products • 3 low stock</p>
+      <p class="subtitle">{totalCount} product{totalCount !== 1 ? 's' : ''}{outOfStockCount > 0 ? ` • ${outOfStockCount} out of stock` : ''}</p>
     </div>
     <div class="header-actions">
       <button class="btn-outline">
@@ -147,7 +125,6 @@
         <thead>
           <tr>
             <th>PRODUCT</th>
-            <th>SKU</th>
             <th>CATEGORY</th>
             <th>PRICE</th>
             <th>STOCK</th>
@@ -156,33 +133,54 @@
           </tr>
         </thead>
         <tbody>
+          {#if deleteError}
+            <tr>
+              <td colspan="7">
+                <div class="error-banner">{deleteError}</div>
+              </td>
+            </tr>
+          {/if}
           {#each filteredProducts as product}
             <tr>
               <td>
                 <div class="product-cell">
-                  <div class="product-img" style="background-image: url('{product.image}')"></div>
+                  {#if product.image}
+                    <div class="product-img" style="background-image: url('{product.image}')"></div>
+                  {:else}
+                    <div class="product-img product-img-placeholder"></div>
+                  {/if}
                   <div>
                     <div class="font-bold text-dark">{product.name}</div>
-                    <div class="text-muted text-xs mt-1">{product.variants}</div>
                   </div>
                 </div>
               </td>
-              <td class="text-muted text-sm">{product.sku}</td>
               <td class="text-dark font-medium">{product.category}</td>
               <td class="font-bold text-dark">{product.price}</td>
               <td class="font-bold text-dark">{product.stock}</td>
               <td>
-                {#if product.status === 'Active'}
+                {#if product.status === 'In stock'}
                   <span class="badge-active">{product.status}</span>
+                {:else}
+                  <span class="badge-outofstock">{product.status}</span>
                 {/if}
               </td>
               <td class="action-cell">
                 <div style="display: flex; gap: 12px; align-items: center;">
-                  <a href="/admin/products/edit/{product.id}" class="action-link" style="color: #2563eb; text-decoration: none; font-weight: 600;">Edit</a>
+                  <a href="/admin/products/edit/{product.id}" class="action-link">Edit</a>
                   <button onclick={() => deleteProduct(product.id)} class="btn-text-small text-red" style="color: #dc2626; border: none; background: none; font-weight: 600; cursor: pointer;">Delete</button>
                 </div>
               </td>
             </tr>
+          {:else}
+            {#if products.length === 0}
+              <tr>
+                <td colspan="7" class="empty-state">No products found. <a href="/admin/products/new" style="color:#F05139;">Add your first product</a>.</td>
+              </tr>
+            {:else}
+              <tr>
+                <td colspan="7" class="empty-state">No products match the current filter.</td>
+              </tr>
+            {/if}
           {/each}
         </tbody>
       </table>
@@ -386,6 +384,47 @@
     border-radius: 12px;
     font-size: 11px;
     font-weight: 700;
+  }
+
+  .badge-lowstock {
+    background: #FEF3C7;
+    color: #D97706;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .badge-outofstock {
+    background: #FEE2E2;
+    color: #DC2626;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .product-img-placeholder {
+    background: #F3F4F6;
+    border: 1px dashed #D1D5DB;
+  }
+
+  .error-banner {
+    background: #FEF2F2;
+    border: 1px solid #FCA5A5;
+    color: #DC2626;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    margin: 8px 20px;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: #9CA3AF;
+    font-size: 14px;
+    padding: 40px 20px !important;
   }
 
   .action-cell {

@@ -1,13 +1,8 @@
-import { redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { LayoutServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ cookies }) => {
+export const load: LayoutServerLoad = ({ cookies }) => {
     const userToken = cookies.get('user_token');
-    
-    // Redirect to login if user is not authenticated
-    if (!userToken) {
-        throw redirect(303, '/login');
-    }
-
-    return {};
+    return {
+        isAuthenticated: !!userToken
+    };
 };

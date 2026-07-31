@@ -177,7 +177,7 @@
             const channel = (form.elements.namedItem('channel') as HTMLSelectElement).value;
             
             try {
-              const res = await fetch(`${env.PUBLIC_API_URL || 'http://localhost:3000/api/v1'}/admin/templates`, {
+              const res = await fetch(`${env.PUBLIC_API_URL || 'http://localhost:3000/api'}/admin/templates`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
                 body: JSON.stringify({ name, trigger_event: trigger, channel, template_body: "Default body..." })

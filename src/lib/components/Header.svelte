@@ -42,10 +42,10 @@
 
     <!-- Actions -->
     <div class="header-actions">
-      <a href="/account" onclick={(e) => handleNav(e, '/account')} class="action-btn">
+      <div class="action-btn" style="cursor: default; opacity: 0.85;">
         <User size={20} />
         <span>Account</span>
-      </a>
+      </div>
       <a href="/wishlist" onclick={(e) => handleNav(e, '/wishlist')} class="action-btn">
         <Heart size={20} />
         <span>Wishlist</span>
@@ -66,12 +66,12 @@
   <nav class="nav-bar">
     <div class="container flex align-center justify-between nav-inner">
       <div class="nav-links">
-        <a href="/" onclick={(e) => handleNav(e, '/')} class="nav-link">Home</a>
-        <a href="/hair-wellness" onclick={(e) => handleNav(e, '/hair-wellness')} class="nav-link">Hair Wellness</a>
-        <a href="/skin-wellness" onclick={(e) => handleNav(e, '/skin-wellness')} class="nav-link">Skin Wellness</a>
-        <a href="/best-selling-combo" onclick={(e) => handleNav(e, '/best-selling-combo')} class="nav-link">Best Selling Combo</a>
-        <a href="/shop" onclick={(e) => handleNav(e, '/shop')} class="nav-link">Shop</a>
-        <a href="/blog" onclick={(e) => handleNav(e, '/blog')} class="nav-link">Blog</a>
+        <a href="/" onclick={(e) => handleNav(e, '/')} class="nav-link" class:active={page.url.pathname === '/'}>Home</a>
+        <a href="/hair-wellness" onclick={(e) => handleNav(e, '/hair-wellness')} class="nav-link" class:active={page.url.pathname === '/hair-wellness'}>Hair Wellness</a>
+        <a href="/skin-wellness" onclick={(e) => handleNav(e, '/skin-wellness')} class="nav-link" class:active={page.url.pathname === '/skin-wellness'}>Skin Wellness</a>
+        <a href="/best-selling-combo" onclick={(e) => handleNav(e, '/best-selling-combo')} class="nav-link" class:active={page.url.pathname === '/best-selling-combo'}>Best Selling Combo</a>
+        <a href="/shop" onclick={(e) => handleNav(e, '/shop')} class="nav-link" class:active={page.url.pathname === '/shop'}>Shop</a>
+        <a href="/blog" onclick={(e) => handleNav(e, '/blog')} class="nav-link" class:active={page.url.pathname.startsWith('/blog')}>Blogs</a>
       </div>
 
       <button class="quiz-btn" onclick={() => store.openQuiz()}>
@@ -261,10 +261,24 @@
     font-size: 14px;
     font-weight: 600;
     color: var(--text-dark);
+    position: relative;
+    padding: 4px 0;
+    transition: color 0.2s ease;
   }
 
-  .nav-link:hover {
+  .nav-link:hover, .nav-link.active {
     color: var(--primary);
+  }
+
+  .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -12px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px 3px 0 0;
   }
 
   .quiz-btn {

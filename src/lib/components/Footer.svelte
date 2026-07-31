@@ -65,19 +65,10 @@
     <div class="footer-column">
       <h4>Information</h4>
       <ul>
-        <li><a href="/blog" onclick={handleNav}>Blog</a></li>
+        <li><a href="/blog" onclick={handleNav}>Blogs</a></li>
         <li><a href="/policies" onclick={handleNav}>About Us</a></li>
         <li><a href="/contact-us" onclick={handleNav}>Contact Us</a></li>
       </ul>
-    </div>
-
-    <!-- Subscribe Column -->
-    <div class="footer-column subscribe-column">
-      <h4>Subscribe</h4>
-      <div class="subscribe-form">
-        <input type="email" placeholder="Enter your email" aria-label="Email address for subscription" />
-        <button class="subscribe-btn">SUBSCRIBE</button>
-      </div>
     </div>
   </div>
 </footer>
@@ -93,7 +84,7 @@
 
   .footer-grid {
     display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr 1fr 1.5fr;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
     gap: 40px;
   }
 

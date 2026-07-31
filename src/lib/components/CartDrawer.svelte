@@ -5,7 +5,7 @@
   
   let checkoutSuccess = $state(false);
   let isCheckingOut = $state(false);
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
   async function handleCheckout() {
     if (store.cartItems.length === 0) return;

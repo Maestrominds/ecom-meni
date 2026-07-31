@@ -4,9 +4,10 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { env } from '$env/dynamic/public';
+  import { uploadToCloudinary } from '$lib/utils/upload';
   import { api } from '$lib/data/mockApi';
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
   const productId = $derived(page.params.id);
 
   let currentTab = $state('general');
@@ -27,6 +28,36 @@
   let sku = $state('');
   let stock = $state(100);
   let mainImageUrl = $state('');
+  let galleryImages = $state<string[]>([]);
+  let newGalleryUrl = $state('');
+
+  function addGalleryImage(url: string) {
+    if (galleryImages.length >= 5) {
+      alert("Maximum 5 product gallery images are allowed.");
+      return;
+    }
+    if (!url.trim() || galleryImages.includes(url.trim())) return;
+    galleryImages = [...galleryImages, url.trim()];
+    newGalleryUrl = '';
+  }
+
+  function handleMainImageInput(rawUrl: string) {
+    mainImageUrl = rawUrl;
+    if (!rawUrl) return;
+    
+    // Auto-split if user pastes multiple comma-separated URLs
+    const splitUrls = rawUrl.split(/[\n,]+/).map(u => u.trim()).filter(u => u.length > 5);
+    if (splitUrls.length > 1) {
+      mainImageUrl = splitUrls[0];
+      splitUrls.slice(0, 5).forEach(url => addGalleryImage(url));
+    } else if (splitUrls.length === 1 && !galleryImages.includes(splitUrls[0])) {
+      addGalleryImage(splitUrls[0]);
+    }
+  }
+
+  function removeGalleryImage(idx: number) {
+    galleryImages = galleryImages.filter((_, i) => i !== idx);
+  }
 
   // ==================== TAB 1: PRODUCT DESCRIPTION ====================
   let descTitle = $state('');
@@ -134,64 +165,56 @@
   let allProducts = $state<any[]>([]);
   let comboProducts = $state<Array<{ productId: string; name: string; quantity: number; searchQuery: string; showDropdown: boolean }>>([]);
 
+  function addComboProduct() {
+    comboProducts = [...comboProducts, { productId: '', name: '', quantity: 1, searchQuery: '', showDropdown: false }];
+  }
+
+  function removeComboProduct(idx: number) {
+    comboProducts = comboProducts.filter((_, i) => i !== idx);
+  }
+
   async function handleLocalImageUpload(e: Event, callback: (url: string) => void) {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
       try {
-        const presignRes = await fetch(`${baseUrl}/admin/upload/presigned-url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, content_type: file.type })
-        });
-        if (presignRes.ok) {
-          const { upload_url, public_url } = await presignRes.json();
-          const uploadRes = await fetch(upload_url, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type },
-            body: file
-          });
-          if (uploadRes.ok) {
-            callback(public_url);
-            return;
-          }
-        }
+        const public_url = await uploadToCloudinary(file);
+        callback(public_url);
       } catch(err) {
-        console.error("Presigned upload failed, using local blob fallback", err);
+        console.error("Upload failed, using local blob fallback", err);
+        callback(URL.createObjectURL(file));
       }
-      callback(URL.createObjectURL(file));
     }
   }
 
   onMount(async () => {
     try {
       allProducts = await api.products.getAll();
+      const prod = await api.products.getById(productId);
       
-      // Fetch existing product values
-      const res = await fetch(`${baseUrl}/public/products/${productId}`);
-      if (res.ok) {
-        const prod = await res.json();
+      if (prod) {
         name = prod.name || '';
         category = prod.category || 'Hair Care';
-        price = String(prod.price || '');
+        price = String(prod.base_price || '');
         comparePrice = prod.compare_price ? String(prod.compare_price) : '';
         sku = prod.sku || '';
-        stock = prod.stock || 100;
+        stock = prod.stock ?? 100;
         mainImageUrl = prod.image_url || '';
         
         if (prod.detail_tabs) {
           const dt = prod.detail_tabs;
           descTitle = dt.product_description?.title || '';
-          descBody = dt.product_description?.body || '';
-          highlights = dt.product_description?.highlights || [''];
+          descBody = dt.product_description?.body || prod.description || '';
+          highlights = dt.product_description?.highlights?.length ? dt.product_description.highlights : [''];
           usageSectionTitle = dt.how_to_use?.section_title || 'How to Use';
-          useSteps = dt.how_to_use?.steps || [{ stepNumber: 1, title: '', description: '', imageUrl: '' }];
+          useSteps = dt.how_to_use?.steps?.length ? dt.how_to_use.steps : [{ stepNumber: 1, title: '', description: '', imageUrl: '' }];
           howItWorksSectionTitle = dt.how_it_works?.section_title || 'How It Works';
-          howItWorksSteps = dt.how_it_works?.steps || [{ timeRange: 'WEEK 1 - 2', title: '', description: '' }];
+          howItWorksSteps = dt.how_it_works?.steps?.length ? dt.how_it_works.steps : [{ timeRange: 'WEEK 1 - 2', title: '', description: '' }];
           suitableText = dt.how_it_works?.suitable_text || '';
-          ingredients = dt.key_ingredients || [{ name: '', benefitDescription: '', imageUrl: '' }];
+          ingredients = dt.key_ingredients?.length ? dt.key_ingredients : [{ name: '', benefitDescription: '', imageUrl: '' }];
           resultsImages = dt.results_images || [];
-          faqs = dt.faqs || [{ question: '', answer: '' }];
+          galleryImages = dt.gallery_images || (prod.image_url ? [prod.image_url] : []);
+          faqs = dt.faqs?.length ? dt.faqs : [{ question: '', answer: '' }];
           
           if (dt.combo_details && dt.combo_details.length > 0) {
             isCombo = true;
@@ -200,7 +223,7 @@
               return {
                 productId: c.product_id,
                 name: matched ? matched.name : '',
-                quantity: c.quantity,
+                quantity: c.quantity || 1,
                 searchQuery: matched ? matched.name : '',
                 showDropdown: false
               };
@@ -225,6 +248,7 @@
 
     // Assemble rich multi-tab metadata
     const detailTabsPayload = {
+      gallery_images: galleryImages.length > 0 ? galleryImages : (mainImageUrl ? [mainImageUrl] : []),
       product_description: {
         title: descTitle,
         body: descBody,
@@ -249,8 +273,8 @@
       id: productId,
       name,
       category,
-      price: parseFloat(price),
-      compare_price: comparePrice ? parseFloat(comparePrice) : null,
+      base_price: parseFloat(price),
+      compare_price: comparePrice ? parseFloat(comparePrice) : 0,
       sku,
       stock,
       image_url: mainImageUrl,
@@ -422,15 +446,47 @@
               <input type="number" id="p-stock" bind:value={stock} placeholder="100" />
             </div>
             <div class="form-group">
-              <label for="p-image">Main Image URL / Upload File</label>
+              <label for="p-image">Main Image URL / Upload File (Paste 1 or multiple URLs comma-separated)</label>
               <div style="display: flex; gap: 12px; align-items: center;">
-                <input type="text" id="p-image" bind:value={mainImageUrl} placeholder="https://example.com/product.jpg" style="flex: 1;" />
+                <input 
+                  type="text" 
+                  id="p-image" 
+                  value={mainImageUrl} 
+                  oninput={(e) => handleMainImageInput(e.currentTarget.value)} 
+                  placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg" 
+                  style="flex: 1;" 
+                />
                 <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
                   <UploadCloud size={16} /> Upload
-                  <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => mainImageUrl = url)} />
+                  <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => { handleMainImageInput(url); })} />
                 </label>
               </div>
             </div>
+          </div>
+
+          <div class="form-group mt-4">
+            <label>Additional Product Gallery Images (Max 5)</label>
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+              <input type="text" bind:value={newGalleryUrl} placeholder="https://example.com/gallery-image.jpg" style="flex: 1;" />
+              <button type="button" class="btn-outline-small" onclick={() => addGalleryImage(newGalleryUrl)}>+ Add URL</button>
+              <label class="btn-outline-small" style="padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                <UploadCloud size={16} /> Upload File
+                <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => addGalleryImage(url))} />
+              </label>
+            </div>
+
+            {#if galleryImages.length > 0}
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                {#each galleryImages as img, idx}
+                  <div style="position: relative; width: 64px; height: 64px; border-radius: 8px; overflow: hidden; border: 1px solid #E5E7EB;">
+                    <img src={img} alt="Gallery thumb" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <button type="button" onclick={() => removeGalleryImage(idx)} style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
           </div>
 
           <div style="border-top: 1px solid #E5E7EB; margin-top: 24px; padding-top: 24px;">

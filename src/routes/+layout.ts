@@ -2,7 +2,7 @@ import { env } from '$env/dynamic/public';
 import type { LayoutLoad } from './$types';
 
 export const load: LayoutLoad = async ({ fetch }) => {
-    const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+    const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
     const fetchGracefully = async (url: string, fallback: any) => {
         try {
@@ -15,7 +15,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
         }
     };
 
-    const announcement = await fetchGracefully(`${baseUrl}/admin/content/announcement`, { Text: '', LinkUrl: '', IsActive: false });
+    const announcement = await fetchGracefully(`${baseUrl}/public/announcement`, { Text: '', LinkUrl: '', IsActive: false });
 
     return {
         announcement

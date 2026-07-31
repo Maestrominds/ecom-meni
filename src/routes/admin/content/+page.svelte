@@ -7,7 +7,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
   // State variables initialized from data
   let banners = $state(data.banners || []);
@@ -20,41 +20,60 @@
   let socialLinks = $state(data.socialLinks || []);
 
   let allProducts = $state<any[]>([]);
-  let videoCards = $state([
-    { title: 'Healthy & Glowing Skin', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', productName: '', searchQuery: '', showDropdown: false },
-    { title: 'Brightening Cream', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', productName: '', searchQuery: '', showDropdown: false },
-    { title: 'Collagen Capsules', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', productName: '', searchQuery: '', showDropdown: false },
-    { title: 'Healthy & Glowing Skin', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', productName: '', searchQuery: '', showDropdown: false }
-  ]);
+  
+  // Ensure we always have exactly 4 video cards
+  let defaultVideoCards = Array.from({ length: 4 }).map((_, i) => ({
+    title: '', videoUrl: '', productId: '', productName: '', searchQuery: '', showDropdown: false
+  }));
+  
+  let videoCards = $state(
+    data.videos && data.videos.length > 0
+      ? data.videos.map((v: any) => ({
+          title: v.Title || '',
+          videoUrl: v.VideoUrl || '',
+          productId: v.ProductID?.Valid ? v.ProductID.String : '',
+          productName: '',
+          searchQuery: '',
+          showDropdown: false
+        })).concat(defaultVideoCards).slice(0, 4)
+      : defaultVideoCards
+  );
 
   onMount(async () => {
     try {
-      allProducts = await api.products.getAll();
+      const res = await fetch(`${baseUrl}/public/products`);
+      if (res.ok) {
+        allProducts = await res.json();
+      }
     } catch(e) {
-      console.error(e);
-    }
-    const saved = localStorage.getItem('homepage_videos');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        videoCards = parsed.map((v: any) => ({
-          ...v,
-          searchQuery: v.productName || '',
-          showDropdown: false
-        }));
-      } catch(e) {}
+      console.error('Error fetching products for dropdown:', e);
     }
   });
 
-  function saveVideoCards() {
-    localStorage.setItem('homepage_videos', JSON.stringify(videoCards));
-    alert("Video Cards configuration saved to local storage! (Note: backend developer tasks added to TODO.md)");
+  async function saveVideoCards() {
+    try {
+      // Loop through all videos and save them (creating them, this assumes wiping old ones or just adding for simplicity)
+      // Since the backend allows Create, we'll just send them one by one. If we had an id we could PUT.
+      // But for this UI, we will just add them.
+      for (const video of videoCards) {
+        if (!video.title || !video.videoUrl) continue;
+        await fetch(`${baseUrl}/admin/videos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: video.title,
+            video_url: video.videoUrl,
+            product_id: video.productId
+          })
+        });
+      }
+      alert("Video Cards saved to the server successfully!");
+    } catch(e) {
+      alert("Error saving videos.");
+    }
   }
 
-  // New Social Link State
   let newSocialUrl = $state('');
-  let newSocialProduct = $state('');
-  let newSocialImage = $state(''); // Would hold URL after upload
 
   // Handlers
   async function saveAnnouncement() {
@@ -114,39 +133,8 @@
     }
   }
 
-  async function handleSocialImageUpload(e: Event) {
-    const input = e.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      newSocialImage = URL.createObjectURL(file);
-      
-      try {
-        const presignRes = await fetch(`${baseUrl}/admin/upload/presigned-url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, content_type: file.type })
-        });
-        
-        if (!presignRes.ok) throw new Error('Failed to get presigned URL');
-        const { upload_url, public_url } = await presignRes.json();
-        
-        const uploadRes = await fetch(upload_url, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file
-        });
-        
-        if (!uploadRes.ok) throw new Error('Failed to upload to storage');
-        newSocialImage = public_url;
-      } catch (err) {
-        console.error(err);
-        alert("Image upload failed.");
-      }
-    }
-  }
-
   function editBlog(id: string) {
-    alert("Blog editing will be available once the backend developer implements the PUT /api/v1/admin/blogs/:id API endpoint (added to TODO.md).");
+    window.location.href = `/admin/content/blog/edit/${id}`;
   }
 
   async function deleteBlog(id: string) {
@@ -159,7 +147,7 @@
         blogPosts = blogPosts.filter(b => b.ID !== id);
         alert("Blog deleted successfully!");
       } else {
-        alert("Delete API not implemented by backend developer yet. (Tasks added to TODO.md)");
+        alert("Failed to delete blog.");
       }
     } catch(e) {
       alert("Error deleting blog.");
@@ -172,17 +160,12 @@
       return;
     }
     
-    // Send a real valid product ID as fallback default to satisfy backend constraint until Go developer removes it
-    let fallbackProductId = allProducts[0]?.id || "";
-
     try {
       const res = await fetch(`${baseUrl}/admin/content/social-links`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: newSocialUrl,
-          product_id: fallbackProductId,
-          image_url: newSocialUrl // Using URL as a placeholder image until developer removes constraint
+          url: newSocialUrl
         })
       });
       if (res.ok) {
@@ -412,17 +395,21 @@
   <!-- Social Media & Product Links -->
   <div class="card p-0 mb-10">
     <div class="card-header flex-between border-bottom">
-      <h3>Social Media & Product Links</h3>
+      <h3>Social Media & Product Links (Max 4)</h3>
+      {#if socialLinks.length < 4}
       <button onclick={createSocialLink} class="btn-primary">
         <Plus size={16} /> Save Link
       </button>
+      {/if}
     </div>
+    {#if socialLinks.length < 4}
     <div class="p-6">
       <div class="form-group mb-0">
         <label>YouTube or Instagram URL</label>
         <input type="text" bind:value={newSocialUrl} placeholder="https://instagram.com/..." />
       </div>
     </div>
+    {/if}
     {#if socialLinks.length > 0}
     <div class="p-6 border-top">
       <h4 class="font-bold text-sm mb-4">Existing Links</h4>

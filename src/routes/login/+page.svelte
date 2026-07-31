@@ -13,7 +13,7 @@
   let phone = $state('');
   let otpCode = $state('');
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
   async function handleSendOTP(e: Event) {
     e.preventDefault();

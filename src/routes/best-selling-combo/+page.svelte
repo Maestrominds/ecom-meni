@@ -2,7 +2,7 @@
   import ProductCard from '$lib/components/ProductCard.svelte';
   
   let { data } = $props();
-  let { products } = data;
+  let products = $derived(data.products || []);
 </script>
 
 <svelte:head>

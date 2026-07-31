@@ -1,7 +1,8 @@
 <script lang="ts">
   import { store } from '$lib/store.svelte';
-  import { Star, CheckCircle, Heart, UserCheck, Shield, Leaf, FlaskConical, Users } from '@lucide/svelte';
+  import { Star, CheckCircle, Heart, UserCheck, Shield, Leaf, FlaskConical, Users } from 'lucide-svelte';
   import SlideBanner from '$lib/components/SlideBanner.svelte';
+  import ProductCard from '$lib/components/ProductCard.svelte';
   
   import founderStoryImg from '$lib/assets/landing_page/fonder_story.png';
   import peachWashImg from '$lib/assets/landing_page/pleach_section.png';
@@ -23,20 +24,44 @@
   ];
 
   let { data } = $props();
-  const { products: mockProducts, blogs: apiBlogs, banners, socialLinks } = data;
+  const { products: apiProducts, blogs: apiBlogs, banners, socialLinks, videos: apiVideos } = data;
 
-  // Map backend products to the UI format required by this page
-  const products = (mockProducts || []).map(p => ({
-    id: p.id,
-    name: p.name,
-    price: p.base_price,
-    originalPrice: p.base_price * 1.3, // Mock original price
-    rating: p.rating,
-    reviews: 124, // Mock reviews
-    badge: p.stock < 100 ? 'Top Seller' : '',
-    desc: p.description,
-    img: p.image_url
-  }));
+  const products = (apiProducts || []).map((p: any) => {
+    const price = parseFloat(p.BasePrice ?? p.base_price ?? p.Price ?? p.price) || 0;
+    const comparePrice = parseFloat(p.ComparePrice ?? p.compare_price) || 0;
+    const imageUrl = p.ImageUrl || p.image_url || p.image || '';
+
+    let desc = 'Premium wellness product';
+    if (p.DescriptionJson) {
+      try {
+        if (typeof p.DescriptionJson === 'string') {
+          const maybeDecoded = p.DescriptionJson.startsWith('"') 
+            ? JSON.parse(p.DescriptionJson)
+            : atob(p.DescriptionJson);
+          desc = maybeDecoded || desc;
+        } else if (typeof p.DescriptionJson === 'object') {
+          desc = JSON.stringify(p.DescriptionJson);
+        }
+      } catch(e) {
+        // keep default
+      }
+    }
+    return {
+      id: p.ID || p.id || '',
+      name: p.Name || p.name || 'Unnamed Product',
+      base_price: price,
+      compare_price: comparePrice > 0 ? comparePrice : (price > 0 ? price + 200 : undefined),
+      badge: p.Stock && p.Stock < 20 ? 'Popular' : '',
+      description: desc || p.description || '',
+      image_url: imageUrl,
+      category: p.Category || p.category || ''
+    };
+  });
+
+  const bestSellers = products.slice(0, 3);
+  const hairWellness = products.filter((p: any) => p.category.toLowerCase().includes('hair')).slice(0, 3);
+  const skinWellness = products.filter((p: any) => p.category.toLowerCase().includes('skin')).slice(0, 3);
+  const bundles = products.filter((p: any) => p.category.toLowerCase().includes('combo') || p.category.toLowerCase().includes('bundle')).slice(0, 3);
 
   const blogs = (apiBlogs || []).map(b => ({
     id: b.ID,
@@ -72,28 +97,22 @@
   });
 
   import { onMount } from 'svelte';
-  let videos = $state([
-    { title: 'Healthy & Glowing Skin', videoUrl: 'https://youtube.com/shorts/aEtRAmwhNeM?si=cAH-mtBdi0z02MpS', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
-    { title: 'Brightening Cream', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
-    { title: 'Collagen Capsules', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
-    { title: 'Healthy & Glowing Skin', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null }
-  ]);
-
-  onMount(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('homepage_videos');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          videos = parsed.map((v: any) => ({
-            ...v,
-            isPlayingWithSound: false,
-            el: null
-          }));
-        } catch(e) {}
-      }
-    }
-  });
+  let videos = $state(
+    (apiVideos && apiVideos.length > 0)
+      ? apiVideos.map((v: any) => ({
+          title: v.Title || '',
+          videoUrl: v.VideoUrl || '',
+          productId: v.ProductID?.Valid ? v.ProductID.String : '',
+          isPlayingWithSound: false,
+          el: null as HTMLVideoElement | null
+        })).slice(0, 4)
+      : [
+          { title: 'Healthy & Glowing Skin', videoUrl: 'https://youtube.com/shorts/aEtRAmwhNeM?si=cAH-mtBdi0z02MpS', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
+          { title: 'Brightening Cream', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
+          { title: 'Collagen Capsules', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null },
+          { title: 'Healthy & Glowing Skin', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', productId: '', isPlayingWithSound: false, el: null as HTMLVideoElement | null }
+        ]
+  );
 
   function toggleVideoSound(idx: number) {
     videos.forEach((video, i) => {
@@ -120,27 +139,36 @@
     return p ? p.img : '';
   }
 
-  function getEmbedUrl(url: string) {
+  function getEmbedUrl(url: string, isMuted: boolean = true) {
     if (!url) return '';
+    const muteParam = isMuted ? '1' : '0';
+    if (url.includes('instagram.com/reel/') || url.includes('instagram.com/p/')) {
+      const parts = url.split('/reel/');
+      const idPart = parts.length > 1 ? parts[1] : url.split('/p/')[1];
+      if (idPart) {
+        const id = idPart.split('/')[0].split('?')[0];
+        return `https://www.instagram.com/reel/${id}/embed/`;
+      }
+    }
     if (url.includes('youtube.com/shorts/') || url.includes('youtu.be/shorts/')) {
       const parts = url.split('/shorts/');
       if (parts.length > 1) {
         const id = parts[1].split('?')[0].split('/')[0];
-        return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&rel=0`;
+        return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muteParam}&loop=1&playlist=${id}&controls=1&modestbranding=1&rel=0`;
       }
     }
     if (url.includes('youtube.com/watch')) {
       try {
         const urlParams = new URLSearchParams(url.split('?')[1]);
         const v = urlParams.get('v');
-        return `https://www.youtube.com/embed/${v}?autoplay=1&mute=1&loop=1&playlist=${v}&controls=0&modestbranding=1&rel=0`;
+        return `https://www.youtube.com/embed/${v}?autoplay=1&mute=${muteParam}&loop=1&playlist=${v}&controls=1&modestbranding=1&rel=0`;
       } catch(e) {}
     }
     if (url.includes('youtu.be/')) {
       const parts = url.split('youtu.be/');
       if (parts.length > 1) {
         const id = parts[1].split('?')[0];
-        return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&rel=0`;
+        return `https://www.youtube.com/embed/${id}?autoplay=1&mute=${muteParam}&loop=1&playlist=${id}&controls=1&modestbranding=1&rel=0`;
       }
     }
     return '';
@@ -213,32 +241,8 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Our Best Sellers</h2>
     <div class="product-grid">
-      {#each products.slice(0, 3) as product}
-        <div class="product-card">
-          <div class="product-img-wrapper placeholder-img" style="background-image: url('{product.img}'); background-size: cover; background-position: center;">
-            {#if product.badge}
-              <span class="product-badge" class:trending={product.badge === 'Trending now'}>{product.badge}</span>
-            {/if}
-          </div>
-          <div class="product-info">
-            <div class="product-rating">
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#e5e7eb" color="#e5e7eb"/>
-              <span>{product.rating} ({product.reviews} Ratings)</span>
-            </div>
-            <h4 class="product-name">{product.name}</h4>
-            <p class="product-desc">{product.desc}</p>
-            <div class="product-price">
-              <span class="current-price">₹{product.price}</span>
-              <span class="original-price">₹{product.originalPrice}</span>
-              <span class="savings">Save ₹{product.originalPrice - product.price}</span>
-            </div>
-            <button class="btn btn-cart"> Add To Cart</button>
-          </div>
-        </div>
+      {#each bestSellers as product}
+        <ProductCard {product} />
       {/each}
     </div>
   </section>
@@ -247,32 +251,8 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Bundle Deals</h2>
     <div class="product-grid">
-      {#each products.slice(0, 3) as product}
-        <div class="product-card">
-          <div class="product-img-wrapper placeholder-img">
-            {#if product.badge}
-              <span class="product-badge" class:trending={product.badge === 'Trending now'}>{product.badge}</span>
-            {/if}
-          </div>
-          <div class="product-info">
-            <div class="product-rating">
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#e5e7eb" color="#e5e7eb"/>
-              <span>{product.rating} ({product.reviews} Ratings)</span>
-            </div>
-            <h4 class="product-name">{product.name}</h4>
-            <p class="product-desc">{product.desc}</p>
-            <div class="product-price">
-              <span class="current-price">₹{product.price}</span>
-              <span class="original-price">₹{product.originalPrice}</span>
-              <span class="savings">Save ₹{product.originalPrice - product.price}</span>
-            </div>
-            <button class="btn btn-cart"> Add To Cart</button>
-          </div>
-        </div>
+      {#each bundles as product}
+        <ProductCard {product} />
       {/each}
     </div>
   </section>
@@ -300,7 +280,7 @@
         <div class="video-card" onclick={() => toggleVideoSound(idx)}>
           {#if getEmbedUrl(video.videoUrl)}
             <iframe 
-              src={getEmbedUrl(video.videoUrl)} 
+              src={getEmbedUrl(video.videoUrl, !video.isPlayingWithSound)} 
               title={video.title}
               frameborder="0" 
               scrolling="no" 
@@ -319,7 +299,7 @@
             ></video>
           {/if}
           
-          <div class="video-overlay-details" style={getEmbedUrl(video.videoUrl) ? "pointer-events: none;" : ""}>
+          <div class="video-overlay-details" style="pointer-events: none;">
             <!-- Product Thumbnail link if present -->
             {#if video.productId}
               {@const thumb = getProductThumbnail(video.productId)}
@@ -330,9 +310,6 @@
               {/if}
             {/if}
             <span class="video-title">{video.title}</span>
-            {#if !getEmbedUrl(video.videoUrl) && video.isPlayingWithSound}
-              <span class="sound-badge">🔊 Sound On</span>
-            {/if}
           </div>
         </div>
       {/each}
@@ -343,32 +320,24 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Hair Wellness</h2>
     <div class="product-grid">
-      {#each products.slice(0, 3) as product}
-        <div class="product-card">
-          <div class="product-img-wrapper placeholder-img">
+      {#each hairWellness as product}
+        <a href={`/product/${product.id}`} class="product-card" style="text-decoration:none; color:inherit; display:flex; flex-direction:column;">
+          <div class="product-img-wrapper placeholder-img" style="background-image: url('{product.img}'); background-size: cover; background-position: center;">
             {#if product.badge}
               <span class="product-badge" class:trending={product.badge === 'Trending now'}>{product.badge}</span>
             {/if}
           </div>
           <div class="product-info">
-            <div class="product-rating">
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#e5e7eb" color="#e5e7eb"/>
-              <span>{product.rating} ({product.reviews} Ratings)</span>
-            </div>
             <h4 class="product-name">{product.name}</h4>
             <p class="product-desc">{product.desc}</p>
             <div class="product-price">
               <span class="current-price">₹{product.price}</span>
-              <span class="original-price">₹{product.originalPrice}</span>
-              <span class="savings">Save ₹{product.originalPrice - product.price}</span>
+              
+              
             </div>
-            <button class="btn btn-cart"> Add To Cart</button>
+            <button class="btn btn-cart" onclick={(e) => { e.preventDefault(); e.stopPropagation(); }}> Add To Cart</button>
           </div>
-        </div>
+        </a>
       {/each}
     </div>
   </section>
@@ -377,32 +346,24 @@
   <section class="product-section section-spacing">
     <h2 class="section-title">Skin Wellness</h2>
     <div class="product-grid">
-      {#each products.slice(0, 3) as product}
-        <div class="product-card">
-          <div class="product-img-wrapper placeholder-img">
+      {#each skinWellness as product}
+        <a href={`/product/${product.id}`} class="product-card" style="text-decoration:none; color:inherit; display:flex; flex-direction:column;">
+          <div class="product-img-wrapper placeholder-img" style="background-image: url('{product.img}'); background-size: cover; background-position: center;">
             {#if product.badge}
               <span class="product-badge" class:trending={product.badge === 'Trending now'}>{product.badge}</span>
             {/if}
           </div>
           <div class="product-info">
-            <div class="product-rating">
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#f59e0b" color="#f59e0b"/>
-              <Star size={14} fill="#e5e7eb" color="#e5e7eb"/>
-              <span>{product.rating} ({product.reviews} Ratings)</span>
-            </div>
             <h4 class="product-name">{product.name}</h4>
             <p class="product-desc">{product.desc}</p>
             <div class="product-price">
               <span class="current-price">₹{product.price}</span>
-              <span class="original-price">₹{product.originalPrice}</span>
-              <span class="savings">Save ₹{product.originalPrice - product.price}</span>
+              
+              
             </div>
-            <button class="btn btn-cart"> Add To Cart</button>
+            <button class="btn btn-cart" onclick={(e) => { e.preventDefault(); e.stopPropagation(); }}> Add To Cart</button>
           </div>
-        </div>
+        </a>
       {/each}
     </div>
   </section>
@@ -488,12 +449,26 @@
     <p class="section-subtitle">Explore Our Gentle Beauty Highlights From @Meni.Embrace_it</p>
     <div class="insta-grid">
       {#if socialLinks && socialLinks.length > 0}
-        {#each socialLinks as link}
-          <a href={link.Url} target="_blank" rel="noopener noreferrer" class="insta-post placeholder-img" style="display:block; text-decoration:none; color:inherit; background-image: url('{link.ImageUrl || ''}'); background-size: cover; background-position: center;">
-            {#if !link.ImageUrl}
-              <span style="padding: 10px; word-break: break-all; font-size: 10px;">{link.Url}</span>
+        {#each socialLinks.slice(0, 4) as link}
+          <div class="insta-post placeholder-img" style="display:block; padding:0; overflow:hidden;">
+            {#if getEmbedUrl(link.Url, false)}
+              <iframe 
+                src={getEmbedUrl(link.Url, false)} 
+                title="Social Post"
+                frameborder="0" 
+                scrolling="no" 
+                allowtransparency="true" 
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                style="width: 100%; height: 100%; border: none;"
+              ></iframe>
+            {:else}
+              <a href={link.Url} target="_blank" rel="noopener noreferrer" style="display:flex; width:100%; height:100%; align-items:center; justify-content:center; text-decoration:none; color:inherit; background-image: url('{link.ImageUrl || ''}'); background-size: cover; background-position: center;">
+                {#if !link.ImageUrl}
+                  <span style="padding: 10px; word-break: break-all; font-size: 10px;">{link.Url}</span>
+                {/if}
+              </a>
             {/if}
-          </a>
+          </div>
         {/each}
       {:else}
         {#each instagram as post}

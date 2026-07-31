@@ -1,21 +1,12 @@
-import { env } from '$env/dynamic/public';
+import { api } from '$lib/data/mockApi';
 import type { PageLoad } from './$types';
 
-export const load: PageLoad = async ({ fetch }) => {
-    const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
-
+export const load: PageLoad = async () => {
     try {
-        const res = await fetch(`${baseUrl}/public/products`);
-        if (!res.ok) {
-            throw new Error('Failed to fetch products');
-        }
-        
-        const products = await res.json();
-        return { products: Array.isArray(products) ? products : [] };
+        const products = await api.products.getAll();
+        return { products };
     } catch (e) {
-        console.error('Error fetching products:', e);
-        return {
-            products: []
-        };
+        console.error('Error fetching products for shop:', e);
+        return { products: [] };
     }
 };

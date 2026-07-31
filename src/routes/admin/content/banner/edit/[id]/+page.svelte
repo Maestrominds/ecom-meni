@@ -4,11 +4,12 @@
   import { page } from '$app/stores';
   import { env } from '$env/dynamic/public';
   import { goto, invalidateAll } from '$app/navigation';
+  import { uploadToCloudinary } from '$lib/utils/upload';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
   let bannerId = $page.params.id;
 
   // Form State
@@ -35,26 +36,9 @@
     const input = e.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
-      image = URL.createObjectURL(file); // temp preview
       
       try {
-        const presignRes = await fetch(`${baseUrl}/admin/upload/presigned-url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, content_type: file.type })
-        });
-        
-        if (!presignRes.ok) throw new Error('Failed to get presigned URL');
-        const { upload_url, public_url } = await presignRes.json();
-        
-        const uploadRes = await fetch(upload_url, {
-          method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file
-        });
-        
-        if (!uploadRes.ok) throw new Error('Failed to upload to storage');
-        image = public_url;
+        image = await uploadToCloudinary(file);
       } catch (err) {
         console.error(err);
         alert("Failed to upload image. (If CORS isn't set on bucket yet, ignore and continue saving).");

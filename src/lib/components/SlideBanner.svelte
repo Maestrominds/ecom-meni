@@ -46,7 +46,7 @@
     
     <div class="banner-actions">
       <button class="btn-primary">Start Free hair Quiz &rarr;</button>
-      <button class="btn-secondary">Shop Collection</button>
+      <a href="/shop" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Shop Collection</a>
     </div>
   </div>
 
