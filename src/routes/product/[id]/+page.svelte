@@ -92,7 +92,14 @@
       
       <div class="pricing">
         <span class="current-price">₹{(product.base_price || 0).toFixed(2)}</span>
+        {#if product.compare_price}
+          <span class="compare-price">₹{product.compare_price.toFixed(2)}</span>
+        {/if}
       </div>
+      
+      {#if product.sku}
+        <div class="sku-code">SKU: {product.sku}</div>
+      {/if}
       
       {#if product.description && product.description !== '""' && product.description.trim() !== ''}
         <p class="description">
@@ -398,67 +405,64 @@
     padding-left: 20px;
   }
 
-  /* Full Width Rich Details Tabs - Matching Figma Image 1 */
+  /* Full Width Rich Details Tabs UI */
   .rich-details-tabs-container {
     width: 100%;
-    margin-top: 48px;
-    padding-top: 24px;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    margin-top: 60px;
+    padding-top: 0;
   }
   
   .user-tabs-header {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 40px;
-    border-bottom: 2px solid #E5E7EB;
+    background: #F3F4F6;
+    padding: 6px;
+    border-radius: 16px;
     margin-bottom: 48px;
     overflow-x: auto;
     white-space: nowrap;
-    padding-bottom: 2px;
+    gap: 6px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.03);
+    -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+  .user-tabs-header::-webkit-scrollbar {
+    display: none;
   }
   
   .user-tab-btn {
     background: transparent;
     border: none;
-    font-size: 1.05rem;
+    font-size: 1rem;
     font-weight: 600;
     color: #6B7280;
     cursor: pointer;
-    padding: 16px 8px;
+    padding: 14px 28px;
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: 1;
+    text-align: center;
     position: relative;
-    transition: all 0.25s ease;
   }
   
-  .user-tab-btn:hover { 
-    color: var(--primary); 
-    transform: translateY(-1px);
+  .user-tab-btn:hover:not(.active) { 
+    color: #374151;
+    background: rgba(255, 255, 255, 0.5);
   }
   
   .user-tab-btn.active {
+    background: white;
     color: var(--primary);
-    font-weight: 800;
+    font-weight: 700;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.03);
   }
-
-  .user-tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--primary);
-    border-radius: 3px 3px 0 0;
-    box-shadow: 0 2px 8px rgba(229, 91, 60, 0.4);
-  }
-
+  
   .user-tab-pane {
-    animation: fadeInTab 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+    animation: fadeInTab 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   @keyframes fadeInTab {
-    from { opacity: 0; transform: translateY(8px); }
+    from { opacity: 0; transform: translateY(12px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
@@ -620,6 +624,21 @@
     letter-spacing: -0.01em;
   }
   
+  .compare-price {
+    font-size: 1.25rem;
+    color: #9CA3AF;
+    text-decoration: line-through;
+    font-weight: 500;
+  }
+  
+  .sku-code {
+    font-size: 0.9rem;
+    color: #6B7280;
+    margin-bottom: 24px;
+    font-weight: 500;
+    margin-top: -20px;
+  }
+  
   .description {
     font-size: 1.05rem;
     color: #4B5563;
@@ -774,52 +793,7 @@
     color: #374151;
   }
   
-  /* Tab Segmented Controls */
-  .rich-details-tabs-container {
-    padding-top: 20px;
-  }
-  
-  .user-tabs-header {
-    display: flex;
-    background: #F3F4F6;
-    padding: 8px;
-    border-radius: 100px;
-    margin-bottom: 48px;
-    overflow-x: auto;
-    white-space: nowrap;
-    gap: 8px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-  }
-  
-  .user-tab-btn {
-    background: transparent;
-    border: none;
-    font-size: 1rem;
-    font-weight: 600;
-    color: #6B7280;
-    cursor: pointer;
-    padding: 12px 24px;
-    border-radius: 100px;
-    transition: var(--transition-smooth);
-    flex: 1;
-    text-align: center;
-  }
-  
-  .user-tab-btn:hover { color: #111827; }
-  
-  .user-tab-btn.active {
-    background: white;
-    color: #111827;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-  }
-  
-  .user-tab-pane {
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+
   
   .pane-title {
     font-size: 2.2rem;

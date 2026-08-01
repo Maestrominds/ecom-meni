@@ -111,18 +111,22 @@
         <div class="cart-items-list">
           {#each store.cartItems as item}
             <div class="cart-item">
-              <div class="item-img-placeholder">
-                {#if item.image}
-                  <img src={item.image} alt={item.name} />
-                {:else}
-                  <div class="empty-img-box">
-                    <span>{item.category[0] || 'P'}</span>
-                  </div>
-                {/if}
-              </div>
+              <a href="/product/{item.id}" class="item-img-link" onclick={() => store.isCartOpen = false}>
+                <div class="item-img-placeholder">
+                  {#if item.image}
+                    <img src={item.image} alt={item.name} />
+                  {:else}
+                    <div class="empty-img-box">
+                      <span>{item.category[0] || 'P'}</span>
+                    </div>
+                  {/if}
+                </div>
+              </a>
               <div class="item-details">
                 <div class="name-row">
-                  <h4>{item.name}</h4>
+                  <a href="/product/{item.id}" class="item-name-link" onclick={() => store.isCartOpen = false}>
+                    <h4>{item.name}</h4>
+                  </a>
                   <button class="delete-btn" onclick={() => store.removeFromCart(item.id)}>
                     <Trash2 size={16} />
                   </button>
@@ -318,6 +322,20 @@
     font-size: 15px;
     font-weight: 600;
     line-height: 1.3;
+  }
+  
+  .item-name-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+  }
+  
+  .item-name-link:hover h4 {
+    color: var(--primary);
+  }
+  
+  .item-img-link {
+    text-decoration: none;
   }
 
   .delete-btn {

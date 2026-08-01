@@ -73,24 +73,53 @@
 
   // Banner Slideshow State
   let currentBannerIndex = $state(0);
-  const heroBanner = $derived(banners && banners.length > 0 ? banners[currentBannerIndex] : null);
+  let isTransitioning = $state(true);
+  let isAnimating = false;
+  
+  const heroBanner = $derived(banners && banners.length > 0 ? banners[currentBannerIndex % banners.length] : null);
 
   const prevBanner = () => {
-    if (banners && banners.length > 0) {
-      currentBannerIndex = (currentBannerIndex - 1 + banners.length) % banners.length;
+    if (isAnimating || !banners || banners.length <= 0) return;
+    
+    if (currentBannerIndex === 0) {
+      isTransitioning = false;
+      currentBannerIndex = banners.length;
+      isAnimating = true;
+      setTimeout(() => {
+        isTransitioning = true;
+        currentBannerIndex = banners.length - 1;
+        setTimeout(() => { isAnimating = false; }, 600);
+      }, 50);
+    } else {
+      isAnimating = true;
+      isTransitioning = true;
+      currentBannerIndex--;
+      setTimeout(() => { isAnimating = false; }, 600);
     }
   };
 
   const nextBanner = () => {
-    if (banners && banners.length > 0) {
-      currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+    if (isAnimating || !banners || banners.length <= 0) return;
+    
+    isAnimating = true;
+    isTransitioning = true;
+    currentBannerIndex++;
+    
+    if (currentBannerIndex === banners.length) {
+      setTimeout(() => {
+        isTransitioning = false;
+        currentBannerIndex = 0;
+        isAnimating = false;
+      }, 600);
+    } else {
+      setTimeout(() => { isAnimating = false; }, 600);
     }
   };
 
   $effect(() => {
     if (banners && banners.length > 1) {
       const interval = setInterval(() => {
-        currentBannerIndex = (currentBannerIndex + 1) % banners.length;
+        nextBanner();
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -186,20 +215,30 @@
 <div class="landing-page">
   <!-- 1. Hero Section -->
   <section class="hero-section">
-    {#if heroBanner}
-      {#key currentBannerIndex}
-        <SlideBanner
-          badge={heroBanner.BadgeText}
-          title={heroBanner.Title}
-          highlight={heroBanner.HighlightText}
-          description={heroBanner.Description}
-          promoTitle={heroBanner.PromoTitle}
-          promoPoint1={heroBanner.PromoPoint1}
-          promoPoint2={heroBanner.PromoPoint2}
-          image={heroBanner.ImageUrl}
-          variant={heroBanner.CssVariant}
-        />
-      {/key}
+    {#if banners && banners.length > 0}
+      <div class="slider-viewport" style="overflow: hidden; width: 100%; border-radius: 12px;">
+        <div class="slider-track" style="display: flex; transition: transform {isTransitioning ? '0.6s cubic-bezier(0.25, 1, 0.5, 1)' : '0s'}; transform: translate3d(-{currentBannerIndex * 100}%, 0, 0); will-change: transform;">
+          {#each [...banners, banners[0]] as banner}
+            <div class="slide-wrapper" style="flex: 0 0 100%; width: 100%;">
+              <SlideBanner
+                badge={banner.BadgeText}
+                title={banner.Title}
+                highlight={banner.HighlightText}
+                description={banner.Description}
+                promoTitle={banner.PromoTitle}
+                promoPoint1={banner.PromoPoint1}
+                promoPoint2={banner.PromoPoint2}
+                image={banner.ImageUrl}
+                variant={banner.CssVariant}
+              />
+            </div>
+          {/each}
+        </div>
+      </div>
+      {#if banners.length > 1}
+        <button class="nav-arrow prev" onclick={prevBanner} aria-label="Previous banner">&#10094;</button>
+        <button class="nav-arrow next" onclick={nextBanner} aria-label="Next banner">&#10095;</button>
+      {/if}
     {:else}
       <SlideBanner />
     {/if}
