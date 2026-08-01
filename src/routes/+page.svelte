@@ -4,12 +4,12 @@
   import SlideBanner from '$lib/components/SlideBanner.svelte';
   import ProductCard from '$lib/components/ProductCard.svelte';
   
-  import founderStoryImg from '$lib/assets/landing_page/fonder_story.png';
-  import peachWashImg from '$lib/assets/landing_page/pleach_section.png';
-  import logo1 from '$lib/assets/landing_page/1im.png';
-  import logo2 from '$lib/assets/landing_page/2im.png';
-  import logo3 from '$lib/assets/landing_page/3im.png';
-  import logo4 from '$lib/assets/landing_page/4im.png';
+  import founderStoryImg from '$lib/assets/landing_page/fonder_story.svg';
+  import peachWashImg from '$lib/assets/landing_page/pleach_section.svg';
+  import logo1 from '$lib/assets/landing_page/1im.svg';
+  import logo2 from '$lib/assets/landing_page/2im.svg';
+  import logo3 from '$lib/assets/landing_page/3im.svg';
+  import logo4 from '$lib/assets/landing_page/4im.svg';
   
   import hairWellnessImg from '$lib/assets/landing_page/hair_welness.svg';
   import skinWellnessImg from '$lib/assets/landing_page/skin_welness.svg';
@@ -321,23 +321,7 @@
     <h2 class="section-title">Hair Wellness</h2>
     <div class="product-grid">
       {#each hairWellness as product}
-        <a href={`/product/${product.id}`} class="product-card" style="text-decoration:none; color:inherit; display:flex; flex-direction:column;">
-          <div class="product-img-wrapper placeholder-img" style="background-image: url('{product.img}'); background-size: cover; background-position: center;">
-            {#if product.badge}
-              <span class="product-badge" class:trending={product.badge === 'Trending now'}>{product.badge}</span>
-            {/if}
-          </div>
-          <div class="product-info">
-            <h4 class="product-name">{product.name}</h4>
-            <p class="product-desc">{product.desc}</p>
-            <div class="product-price">
-              <span class="current-price">₹{product.price}</span>
-              
-              
-            </div>
-            <button class="btn btn-cart" onclick={(e) => { e.preventDefault(); e.stopPropagation(); }}> Add To Cart</button>
-          </div>
-        </a>
+        <ProductCard {product} />
       {/each}
     </div>
   </section>
@@ -347,23 +331,7 @@
     <h2 class="section-title">Skin Wellness</h2>
     <div class="product-grid">
       {#each skinWellness as product}
-        <a href={`/product/${product.id}`} class="product-card" style="text-decoration:none; color:inherit; display:flex; flex-direction:column;">
-          <div class="product-img-wrapper placeholder-img" style="background-image: url('{product.img}'); background-size: cover; background-position: center;">
-            {#if product.badge}
-              <span class="product-badge" class:trending={product.badge === 'Trending now'}>{product.badge}</span>
-            {/if}
-          </div>
-          <div class="product-info">
-            <h4 class="product-name">{product.name}</h4>
-            <p class="product-desc">{product.desc}</p>
-            <div class="product-price">
-              <span class="current-price">₹{product.price}</span>
-              
-              
-            </div>
-            <button class="btn btn-cart" onclick={(e) => { e.preventDefault(); e.stopPropagation(); }}> Add To Cart</button>
-          </div>
-        </a>
+        <ProductCard {product} />
       {/each}
     </div>
   </section>
