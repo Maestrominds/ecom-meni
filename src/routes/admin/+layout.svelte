@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/state';
+  import companyLogo from '$lib/assets/company_logo.svg';
   import { 
     LayoutDashboard, 
     ShoppingCart, 
@@ -45,7 +46,7 @@
     <aside class="sidebar">
       <div class="brand">
         <span class="logo">
-          <img src="/company_logo.svgg" alt="MENI" class="brand-logo" />
+          <img src={companyLogo} alt="MENI" class="brand-logo" />
         </span>
         <span class="badge">ADMIN</span>
       </div>

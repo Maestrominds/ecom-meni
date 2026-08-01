@@ -1,5 +1,6 @@
 <script lang="ts">
   import { store } from '$lib/store.svelte';
+  import companyLogo from '$lib/assets/company_logo.svg';
 
   function handleNav() {
     store.triggerLoading(600);
@@ -11,7 +12,7 @@
     <!-- Brand / Logo Info Column -->
     <div class="footer-column brand-column">
       <div class="brand-logo-wrapper">
-        <img src="/company_logo.png" alt="MENI" class="footer-logo-img" />
+        <img src={companyLogo} alt="MENI" class="footer-logo-img" />
       </div>
 
       <!-- Custom Brand Social SVGs (Lucide-style vector paths) -->

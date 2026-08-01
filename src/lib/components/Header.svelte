@@ -2,6 +2,7 @@
   import { store } from '$lib/store.svelte';
   import { Search, User, Heart, ShoppingCart, Mic } from '@lucide/svelte';
   import { page } from '$app/state';
+  import companyLogo from '$lib/assets/company_logo.svg';
 
   function handleNav(e: MouseEvent, path: string) {
     store.triggerLoading(800);
@@ -26,7 +27,7 @@
   <div class="container flex align-center justify-between header-inner">
     <!-- Brand Logo -->
     <a href="/" onclick={(e) => handleNav(e, '/')} class="logo">
-      <img src="/company_logo.svg" alt="MENI" class="logo-img" />
+      <img src={companyLogo} alt="MENI" class="logo-img" />
     </a>
 
     <!-- Search Input -->
