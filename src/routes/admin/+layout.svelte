@@ -45,7 +45,7 @@
     <aside class="sidebar">
       <div class="brand">
         <span class="logo">
-          <img src="/company_logo.png" alt="MENI" class="brand-logo" />
+          <img src="/company_logo.svgg" alt="MENI" class="brand-logo" />
         </span>
         <span class="badge">ADMIN</span>
       </div>

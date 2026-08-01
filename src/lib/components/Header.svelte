@@ -26,7 +26,7 @@
   <div class="container flex align-center justify-between header-inner">
     <!-- Brand Logo -->
     <a href="/" onclick={(e) => handleNav(e, '/')} class="logo">
-      <img src="/company_logo.png" alt="MENI" class="logo-img" />
+      <img src="/company_logo.svg" alt="MENI" class="logo-img" />
     </a>
 
     <!-- Search Input -->
