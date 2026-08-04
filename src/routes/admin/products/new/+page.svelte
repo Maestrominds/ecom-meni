@@ -3,7 +3,7 @@
   import { ArrowLeft, Plus, Trash2, Search, ChevronDown, Check, ChevronLeft, ChevronRight, UploadCloud } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { env } from '$env/dynamic/public';
-  import { uploadToCloudinary } from '$lib/utils/upload';
+  import { uploadToR2 } from '$lib/utils/upload';
   import { api } from '$lib/data/mockApi';
 
   const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -13,7 +13,7 @@
     if (input.files && input.files[0]) {
       const file = input.files[0];
       try {
-        const public_url = await uploadToCloudinary(file);
+        const public_url = await uploadToR2(file);
         callback(public_url);
       } catch(err) {
         console.error("Upload failed, using local blob fallback", err);
@@ -402,32 +402,27 @@
               <input type="number" id="p-stock" bind:value={stock} placeholder="100" />
             </div>
             <div class="form-group">
-              <label for="p-image">Main Image URL / Upload File (Paste 1 or multiple URLs comma-separated)</label>
+              <label>Main Image Upload</label>
               <div style="display: flex; gap: 12px; align-items: center;">
-                <input 
-                  type="text" 
-                  id="p-image" 
-                  value={mainImageUrl} 
-                  oninput={(e) => handleMainImageInput(e.currentTarget.value)} 
-                  placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg" 
-                  style="flex: 1;" 
-                />
-                <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                  <UploadCloud size={16} /> Upload
-                  <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => { handleMainImageInput(url); })} />
+                <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: 100%; justify-content: center; border: 2px dashed #E5E7EB;">
+                  <UploadCloud size={16} /> Select File from Computer
+                  <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => { mainImageUrl = url; })} />
                 </label>
               </div>
+              {#if mainImageUrl}
+                <div class="mt-2" style="width: 100px; height: 100px; border-radius: 8px; overflow: hidden; border: 1px solid #E5E7EB;">
+                  <img src={mainImageUrl} alt="Main thumb" style="width: 100%; height: 100%; object-fit: cover;" />
+                </div>
+              {/if}
             </div>
           </div>
 
           <div class="form-group mt-4">
             <label>Additional Product Gallery Images (Max 5)</label>
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
-              <input type="text" bind:value={newGalleryUrl} placeholder="https://example.com/gallery-image.jpg" style="flex: 1;" />
-              <button type="button" class="btn-outline-small" onclick={() => addGalleryImage(newGalleryUrl)}>+ Add URL</button>
-              <label class="btn-outline-small" style="padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                <UploadCloud size={16} /> Upload File
-                <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => addGalleryImage(url))} />
+              <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: 2px dashed #E5E7EB;" class:opacity-50={galleryImages.length >= 5}>
+                <UploadCloud size={16} /> Upload File from Computer
+                <input type="file" accept="image/*" style="display: none;" disabled={galleryImages.length >= 5} onchange={(e) => handleLocalImageUpload(e, (url) => addGalleryImage(url))} />
               </label>
             </div>
 
@@ -511,14 +506,18 @@
                   <textarea bind:value={step.description} rows="2" placeholder="Take 2-3 drops of serum and spread evenly..."></textarea>
                 </div>
                 <div class="form-group">
-                  <label>Step Image URL / Upload File</label>
+                  <label>Step Image Upload</label>
                   <div style="display: flex; gap: 12px; align-items: center;">
-                    <input type="text" bind:value={step.imageUrl} placeholder="https://example.com/step1.jpg" style="flex: 1;" />
-                    <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                      <UploadCloud size={16} /> Upload
+                    <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: 100%; justify-content: center; border: 2px dashed #E5E7EB;">
+                      <UploadCloud size={16} /> Upload Local Image
                       <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => step.imageUrl = url)} />
                     </label>
                   </div>
+                  {#if step.imageUrl}
+                    <div class="mt-2" style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid #E5E7EB;">
+                      <img src={step.imageUrl} alt="Step image" style="width: 100%; height: 100%; object-fit: cover;" />
+                    </div>
+                  {/if}
                 </div>
               </div>
             {/each}
@@ -608,14 +607,18 @@
                   <textarea bind:value={ing.benefitDescription} rows="2" placeholder="Helps stimulate hair follicles and reduces shedding..."></textarea>
                 </div>
                 <div class="form-group">
-                  <label>Ingredient Image URL / Upload File</label>
+                  <label>Ingredient Image Upload</label>
                   <div style="display: flex; gap: 12px; align-items: center;">
-                    <input type="text" bind:value={ing.imageUrl} placeholder="https://example.com/ingredient.jpg" style="flex: 1;" />
-                    <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                      <UploadCloud size={16} /> Upload
+                    <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; width: 100%; justify-content: center; border: 2px dashed #E5E7EB;">
+                      <UploadCloud size={16} /> Upload Local Image
                       <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => ing.imageUrl = url)} />
                     </label>
                   </div>
+                  {#if ing.imageUrl}
+                    <div class="mt-2" style="width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid #E5E7EB;">
+                      <img src={ing.imageUrl} alt="Ingredient image" style="width: 100%; height: 100%; object-fit: cover;" />
+                    </div>
+                  {/if}
                 </div>
               </div>
             {/each}
@@ -629,14 +632,12 @@
           <h2 class="section-title mb-6">Results & Before/After Gallery (Max 5)</h2>
           
           <div class="form-group">
-            <label>Add Result Image URL / Upload File</label>
+            <label>Upload Result Image (Max 5)</label>
             <div class="flex gap-12">
-              <input type="text" bind:value={newResultImageUrl} placeholder="https://example.com/result1.jpg" style="flex: 1;" />
-              <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
-                <UploadCloud size={16} /> Upload
-                <input type="file" accept="image/*" style="display: none;" onchange={(e) => handleLocalImageUpload(e, (url) => { newResultImageUrl = url; addResultImage(); })} />
+              <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: 2px dashed #E5E7EB;" class:opacity-50={resultsImages.length >= 5}>
+                <UploadCloud size={16} /> Select File from Computer
+                <input type="file" accept="image/*" style="display: none;" disabled={resultsImages.length >= 5} onchange={(e) => handleLocalImageUpload(e, (url) => { newResultImageUrl = url; addResultImage(); })} />
               </label>
-              <button onclick={addResultImage} class="btn-primary" style="padding: 10px 16px;" disabled={resultsImages.length >= 5}>Add URL</button>
             </div>
             <span class="text-xs text-muted mt-1 block">Current count: {resultsImages.length} / 5</span>
           </div>
