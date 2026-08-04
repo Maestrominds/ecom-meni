@@ -2,13 +2,10 @@
   import { Megaphone, Zap, Mail, MousePointerClick, Image as ImageIcon, Search } from 'lucide-svelte';
   import { env } from '$env/dynamic/public';
 
-  let { templates = [] } = $props();
+  let { data = {} } = $props();
 
-  const recentCampaigns = [
-    { name: 'Spring Essentials Launch', sub: 'Fresh looks for a fresh season', audience: 'Main Newsletter', status: 'SENT', sent: '12,450 / 04-12', open: '32.4%', ctr: '12.1%' },
-    { name: 'Spring Essentials Launch', sub: 'Fresh looks for a fresh season', audience: 'Main Newsletter', status: 'SENT', sent: '12,450 / 04-12', open: '32.4%', ctr: '12.1%' },
-    { name: 'Spring Essentials Launch', sub: 'Fresh looks for a fresh season', audience: 'Main Newsletter', status: 'SENT', sent: '12,450 / 04-12', open: '32.4%', ctr: '12.1%' }
-  ];
+  let templates = $derived(data?.templates || []);
+  let recentCampaigns = $derived(data?.recent || []);
 </script>
 
 <div class="email-campaigns-container">
@@ -33,8 +30,8 @@
         <Megaphone size={16} class="text-primary" />
       </div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">248</div>
-        <div class="text-green text-xs font-bold mb-1">+12%↗</div>
+        <div class="metric-value">{data?.total || 0}</div>
+        <div class="text-green text-xs font-bold mb-1">Live</div>
       </div>
     </div>
     <div class="metric-card">
@@ -43,8 +40,8 @@
         <Zap size={16} class="text-blue" />
       </div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">14</div>
-        <div class="text-muted text-xs mb-1">No change</div>
+        <div class="metric-value">{data?.active || 0}</div>
+        <div class="text-muted text-xs mb-1">Running</div>
       </div>
     </div>
     <div class="metric-card">
@@ -53,8 +50,8 @@
         <Mail size={16} class="text-orange" />
       </div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">24.8%</div>
-        <div class="text-green text-xs font-bold mb-1">+2.4%↗</div>
+        <div class="metric-value">{data?.avgOpenRate || '0%'}</div>
+        <div class="text-green text-xs font-bold mb-1">Industry avg: 21%</div>
       </div>
     </div>
     <div class="metric-card">
@@ -63,8 +60,8 @@
         <MousePointerClick size={16} class="text-blue-light" />
       </div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">8.2%</div>
-        <div class="text-red text-xs font-bold mb-1">-0.5%↘</div>
+        <div class="metric-value">{data?.clickRate || '0%'}</div>
+        <div class="text-muted text-xs font-bold mb-1">Based on opens</div>
       </div>
     </div>
   </div>

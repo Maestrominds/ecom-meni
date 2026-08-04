@@ -23,6 +23,9 @@ class GlobalState {
   // Loading Simulator
   isLoading = $state(false);
 
+  // Admin Auth
+  isAdminLoggedIn = $state(false);
+
   // Cart actions
   addToCart(item: Omit<CartItem, 'quantity'>) {
     const existing = this.cartItems.find(i => i.id === item.id);

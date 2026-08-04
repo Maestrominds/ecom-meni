@@ -13,7 +13,7 @@
 
   let { data } = $props();
 
-  let activeTab = $state('Coupons');
+  let activeTab = $state('COUPONS');
   const tabs = ['COUPONS', 'FLASH SALE', 'REFERRAL', 'AFFILIATE', 'EMAIL CAMPAIGNS', 'AUTOMATION'];
 </script>
 
@@ -46,17 +46,17 @@
   <!-- Tab Content -->
   <div class="tab-content">
     {#if activeTab === 'COUPONS'}
-      <CouponsTab coupons={data?.coupons || []} />
+      <CouponsTab data={data.marketing?.coupons} />
     {:else if activeTab === 'FLASH SALE'}
-      <FlashSaleTab />
+      <FlashSaleTab data={data.marketing?.flashSale} />
     {:else if activeTab === 'REFERRAL'}
-      <ReferralTab />
+      <ReferralTab data={data.marketing?.referral} />
     {:else if activeTab === 'AFFILIATE'}
-      <AffiliateTab />
+      <AffiliateTab data={data.marketing?.affiliate} />
     {:else if activeTab === 'EMAIL CAMPAIGNS'}
-      <EmailCampaignsTab templates={data?.templates || []} />
+      <EmailCampaignsTab data={data.marketing?.emailCampaigns} />
     {:else if activeTab === 'AUTOMATION'}
-      <AutomationTab />
+      <AutomationTab data={data.marketing?.automation} />
     {/if}
   </div>
 </div>

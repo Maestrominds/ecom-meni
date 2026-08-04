@@ -43,10 +43,10 @@
 
     <!-- Actions -->
     <div class="header-actions">
-      <div class="action-btn" style="cursor: default; opacity: 0.85;">
+      <a href="/login" onclick={(e) => handleNav(e, '/login')} class="action-btn">
         <User size={20} />
         <span>Account</span>
-      </div>
+      </a>
       <a href="/wishlist" onclick={(e) => handleNav(e, '/wishlist')} class="action-btn">
         <Heart size={20} />
         <span>Wishlist</span>
@@ -71,7 +71,6 @@
         <a href="/hair-wellness" onclick={(e) => handleNav(e, '/hair-wellness')} class="nav-link" class:active={page.url.pathname === '/hair-wellness'}>Hair Wellness</a>
         <a href="/skin-wellness" onclick={(e) => handleNav(e, '/skin-wellness')} class="nav-link" class:active={page.url.pathname === '/skin-wellness'}>Skin Wellness</a>
         <a href="/best-selling-combo" onclick={(e) => handleNav(e, '/best-selling-combo')} class="nav-link" class:active={page.url.pathname === '/best-selling-combo'}>Best Selling Combo</a>
-        <a href="/shop" onclick={(e) => handleNav(e, '/shop')} class="nav-link" class:active={page.url.pathname === '/shop'}>Shop</a>
         <a href="/blog" onclick={(e) => handleNav(e, '/blog')} class="nav-link" class:active={page.url.pathname.startsWith('/blog')}>Blogs</a>
       </div>
 

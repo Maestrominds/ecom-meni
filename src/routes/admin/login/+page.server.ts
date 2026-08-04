@@ -21,6 +21,8 @@ export const actions = {
         }
 
         try {
+            // MOCK BACKEND LOGIN
+            /*
             const response = await fetch(`${env.PUBLIC_API_URL}/admin/login`, {
                 method: 'POST',
                 headers: {
@@ -38,9 +40,10 @@ export const actions = {
             }
 
             const resData = await response.json();
+            */
             
             // Set the JWT token in an HttpOnly cookie securely
-            cookies.set('admin_token', resData.token, {
+            cookies.set('admin_token', 'mock_token', {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'strict',

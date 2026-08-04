@@ -46,7 +46,6 @@
         <li><a href="/hair-wellness" onclick={handleNav}>Hair Wellness</a></li>
         <li><a href="/skin-wellness" onclick={handleNav}>Skin Wellness</a></li>
         <li><a href="/best-selling-combo" onclick={handleNav}>Best Selling Combo</a></li>
-        <li><a href="/shop" onclick={handleNav}>Shop</a></li>
         <li><button onclick={() => store.openQuiz()}>Take Quiz</button></li>
       </ul>
     </div>

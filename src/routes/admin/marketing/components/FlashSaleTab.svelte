@@ -1,20 +1,22 @@
 <script lang="ts">
   import { Tag, Truck, Clock, ChevronDown, Calendar } from 'lucide-svelte';
+
+  let { data = {} } = $props();
 </script>
 
 <!-- Metrics Cards -->
 <div class="metrics-grid">
   <div class="metric-card">
     <div class="metric-title"><Tag size={16} class="text-primary" /> ACTIVE COUPONS</div>
-    <div class="metric-value">3</div>
+    <div class="metric-value">{data?.activeCount || 0}</div>
   </div>
   <div class="metric-card">
     <div class="metric-title"><Truck size={16} class="text-primary" /> FREE SHIPPING THRESHOLD</div>
-    <div class="metric-value">₹499</div>
+    <div class="metric-value">₹{data?.freeShippingThreshold || 0}</div>
   </div>
   <div class="metric-card">
     <div class="metric-title"><Clock size={16} class="text-primary" /> FLASH SALE ENDS</div>
-    <div class="metric-value">02d 14h 22m</div>
+    <div class="metric-value">{data?.endsIn || 'N/A'}</div>
   </div>
 </div>
 

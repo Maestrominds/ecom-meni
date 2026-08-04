@@ -1,24 +1,9 @@
 <script lang="ts">
-  import { ChevronDown, ArrowUpRight, ArrowDownRight } from 'lucide-svelte';
+  import { ChevronDown, ArrowUpRight, ArrowDownRight, Search, Bell, Download } from 'lucide-svelte';
 
-  const productPerformance = [
-    { name: 'Hair Fall Control Oil', sold: 420, revenue: '₹251,580', rate: '4.20%', stock: 142 },
-    { name: 'Anti-Dandruff Shampoo', sold: 382, revenue: '₹171,518', rate: '3.90%', stock: 8, lowStock: true },
-    { name: 'Vitamin C Face Serum', sold: 344, revenue: '₹274,856', rate: '3.60%', stock: 67 },
-    { name: 'Beard Growth Combo', sold: 306, revenue: '₹305,694', rate: '3.30%', stock: 24, lowStock: true },
-    { name: 'Onion Hair Mask', sold: 268, revenue: '₹147,132', rate: '3.00%', stock: 0, lowStock: true },
-    { name: 'Sunscreen SPF 50', sold: 230, revenue: '₹149,270', rate: '2.70%', stock: 95 }
-  ];
-
-  const metaAds = [
-    { campaign: 'Summer Sale 2024', spend: '₹42,000', clicks: '18,400', roas: '4.2x', conversions: '156' },
-    { campaign: 'Retargeting - Cart Abandoners', spend: '₹12,500', clicks: '4,200', roas: '3.8x', conversions: '42' }
-  ];
-
-  const searchConsole = [
-    { keyword: 'best hair fall control oil', clicks: '1,240', impressions: '25.5k', pos: '3.2' },
-    { keyword: 'natural face serum india', clicks: '850', impressions: '18.2k', pos: '5.1' }
-  ];
+  let { data } = $props();
+  let metrics = $derived(data.metrics);
+  let error = $derived(data.error);
 </script>
 
 <svelte:head>
@@ -26,347 +11,376 @@
 </svelte:head>
 
 <div class="analytics-container">
+  <!-- Top Nav -->
+  <div class="top-nav">
+    <div class="search-bar">
+      <Search size={16} class="text-muted" />
+      <input type="text" placeholder="Search analytics..." />
+    </div>
+    <div class="nav-actions">
+      <button class="icon-btn"><Bell size={18} /></button>
+      <button class="btn-primary" style="background-color: #F05139; color: white; border: none; border-radius: 4px; padding: 8px 14px; font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;"><Download size={14} /> Export PDF</button>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="page-header">
     <h1>Analytics & Reports</h1>
     <div class="dropdown-btn">Last 30 days <ChevronDown size={14} /></div>
   </div>
 
-  <!-- Top Metrics -->
-  <div class="metrics-grid">
-    <div class="metric-card">
-      <div class="metric-title">REVENUE</div>
-      <div class="metric-value">₹14,82,300</div>
-      <div class="metric-trend positive"><ArrowUpRight size={14} /> 22.1% <span class="trend-text">vs last period</span></div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-title">ORDERS</div>
-      <div class="metric-value">2,148</div>
-      <div class="metric-trend positive"><ArrowUpRight size={14} /> 15.4% <span class="trend-text">vs last period</span></div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-title">AOV</div>
-      <div class="metric-value">₹690</div>
-      <div class="metric-trend positive"><ArrowUpRight size={14} /> 5.8% <span class="trend-text">vs last period</span></div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-title">RTO RATE</div>
-      <div class="metric-value">6.2%</div>
-      <div class="metric-trend negative"><ArrowDownRight size={14} /> 1.1% <span class="trend-text">vs last period</span></div>
-    </div>
-  </div>
-
-  <!-- Row 1: Sales & Payment -->
-  <div class="charts-row split-2-1">
-    <div class="card chart-card">
-      <div class="card-header">
-        <h3>Sales report</h3>
-      </div>
-      <div class="chart-placeholder">
-        <svg viewBox="0 0 100 40" class="line-chart" preserveAspectRatio="none">
-          <path d="M0,35 L10,32 L20,33 L30,28 L40,29 L50,23 L60,25 L70,18 L80,20 L90,12 L100,6" fill="none" stroke="#F05139" stroke-width="1.5" />
-          <path d="M0,40 L0,35 L10,32 L20,33 L30,28 L40,29 L50,23 L60,25 L70,18 L80,20 L90,12 L100,6 L100,40 Z" fill="url(#gradient)" opacity="0.1" />
-          <defs>
-            <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#F05139" />
-              <stop offset="100%" stop-color="white" />
-            </linearGradient>
-          </defs>
-        </svg>
+  {#if error || !metrics}
+    <div class="card p-6 mt-6">
+      <div class="text-center text-muted" style="padding: 60px 20px;">
+        <h3 class="mb-4">Data Unavailable</h3>
+        <p>{error || "Analytics dashboard is pending backend integration."}</p>
       </div>
     </div>
+  {:else}
+    <!-- Top Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-title">REVENUE</div>
+        <div class="metric-value">₹{metrics.topMetrics?.revenue?.value?.toLocaleString() || '0'}</div>
+        <div class="metric-trend {metrics.topMetrics?.revenue?.trend >= 0 ? 'positive' : 'negative'}">
+          {#if metrics.topMetrics?.revenue?.trend >= 0}<ArrowUpRight size={14} />{:else}<ArrowDownRight size={14} />{/if}
+          {Math.abs(metrics.topMetrics?.revenue?.trend || 0)}% <span class="trend-text">vs last period</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">ORDERS</div>
+        <div class="metric-value">{metrics.topMetrics?.orders?.value?.toLocaleString() || '0'}</div>
+        <div class="metric-trend {metrics.topMetrics?.orders?.trend >= 0 ? 'positive' : 'negative'}">
+          {#if metrics.topMetrics?.orders?.trend >= 0}<ArrowUpRight size={14} />{:else}<ArrowDownRight size={14} />{/if}
+          {Math.abs(metrics.topMetrics?.orders?.trend || 0)}% <span class="trend-text">vs last period</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">AOV</div>
+        <div class="metric-value">₹{metrics.topMetrics?.aov?.value?.toLocaleString() || '0'}</div>
+        <div class="metric-trend {metrics.topMetrics?.aov?.trend >= 0 ? 'positive' : 'negative'}">
+          {#if metrics.topMetrics?.aov?.trend >= 0}<ArrowUpRight size={14} />{:else}<ArrowDownRight size={14} />{/if}
+          {Math.abs(metrics.topMetrics?.aov?.trend || 0)}% <span class="trend-text">vs last period</span>
+        </div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-title">RTO RATE</div>
+        <div class="metric-value">{metrics.topMetrics?.rtoRate?.value || '0'}%</div>
+        <div class="metric-trend {metrics.topMetrics?.rtoRate?.trend >= 0 ? 'positive' : 'negative'}">
+          {#if metrics.topMetrics?.rtoRate?.trend >= 0}<ArrowUpRight size={14} />{:else}<ArrowDownRight size={14} />{/if}
+          {Math.abs(metrics.topMetrics?.rtoRate?.trend || 0)}% <span class="trend-text">vs last period</span>
+        </div>
+      </div>
+    </div>
 
-    <div class="card p-6">
-      <h3 class="mb-6 font-bold text-dark text-lg">By payment method</h3>
+    <!-- Row 1: Sales & Payment -->
+    <div class="charts-row split-2-1">
+      <div class="card chart-card">
+        <div class="card-header">
+          <h3>Sales report</h3>
+        </div>
+        <div class="chart-placeholder">
+          <svg viewBox="0 0 100 40" class="line-chart" preserveAspectRatio="none">
+            <path d="M0,35 L10,32 L20,33 L30,28 L40,29 L50,23 L60,25 L70,18 L80,20 L90,12 L100,6" fill="none" stroke="#F05139" stroke-width="1.5" />
+            <path d="M0,40 L0,35 L10,32 L20,33 L30,28 L40,29 L50,23 L60,25 L70,18 L80,20 L90,12 L100,6 L100,40 Z" fill="url(#gradient)" opacity="0.1" />
+            <defs>
+              <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#F05139" />
+                <stop offset="100%" stop-color="white" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="mb-6 font-bold text-dark text-lg">By payment method</h3>
+        
+        <div class="mb-6">
+          <div class="flex-between mb-2">
+            <span class="font-medium text-dark">Prepaid (Razorpay)</span>
+            <span class="font-bold text-dark">₹{metrics.paymentMethods?.prepaid?.amount?.toLocaleString() || '0'}</span>
+          </div>
+          <div class="progress-bg"><div class="progress-fill" style="width: {metrics.paymentMethods?.prepaid?.percentage || 0}%"></div></div>
+          <div class="text-xs text-muted mt-1">{metrics.paymentMethods?.prepaid?.percentage || 0}%</div>
+        </div>
+
+        <div>
+          <div class="flex-between mb-2">
+            <span class="font-medium text-dark">COD</span>
+            <span class="font-bold text-dark">₹{metrics.paymentMethods?.cod?.amount?.toLocaleString() || '0'}</span>
+          </div>
+          <div class="progress-bg"><div class="progress-fill" style="width: {metrics.paymentMethods?.cod?.percentage || 0}%"></div></div>
+          <div class="text-xs text-muted mt-1">{metrics.paymentMethods?.cod?.percentage || 0}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Orders by day & Ad Perf -->
+    <div class="charts-row split-2-1">
+      <div class="card p-6">
+        <h3 class="mb-6 font-bold text-dark text-lg">Orders by day</h3>
+        <div class="bar-chart-simple">
+          {#each metrics.salesReport?.data || [] as val, i}
+            <div class="bar-col"><div class="bar" style="height: {val}%"></div><span>{metrics.salesReport?.labels?.[i] || ''}</span></div>
+          {/each}
+        </div>
+      </div>
       
-      <div class="mb-6">
-        <div class="flex-between mb-2">
-          <span class="font-medium text-dark">Prepaid (Razorpay)</span>
-          <span class="font-bold text-dark">₹9,18,000</span>
+      <div class="card">
+        <div class="card-header border-0 pb-0">
+          <h3>Ad performance (UTM)</h3>
         </div>
-        <div class="progress-bg"><div class="progress-fill" style="width: 62%"></div></div>
-        <div class="text-xs text-muted mt-1">62%</div>
-      </div>
-
-      <div>
-        <div class="flex-between mb-2">
-          <span class="font-medium text-dark">COD</span>
-          <span class="font-bold text-dark">₹5,64,300</span>
-        </div>
-        <div class="progress-bg"><div class="progress-fill" style="width: 38%"></div></div>
-        <div class="text-xs text-muted mt-1">38%</div>
+        <table class="data-table mt-4 no-borders">
+          <thead>
+            <tr>
+              <th>CAMPAIGN</th>
+              <th>ORDERS</th>
+              <th>REVENUE</th>
+              <th>AOV</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each metrics.adPerformance || [] as ad}
+            <tr>
+              <td class="font-medium text-dark text-sm">{ad.campaign}</td>
+              <td class="text-dark text-sm">{ad.conversions}</td>
+              <td class="text-dark text-sm">₹{ad.spend?.toLocaleString() || 0}</td>
+              <td class="text-dark text-sm">₹{Math.round(ad.spend / (ad.conversions || 1))}</td>
+            </tr>
+            {/each}
+          </tbody>
+        </table>
       </div>
     </div>
-  </div>
 
-  <!-- Row 2: Orders by day & Ad Perf -->
-  <div class="charts-row split-2-1">
-    <div class="card p-6">
-      <h3 class="mb-6 font-bold text-dark text-lg">Orders by day</h3>
-      <div class="bar-chart-simple">
-        <div class="bar-col"><div class="bar" style="height: 40%"></div><span>Mon</span></div>
-        <div class="bar-col"><div class="bar" style="height: 50%"></div><span>Tue</span></div>
-        <div class="bar-col"><div class="bar" style="height: 45%"></div><span>Wed</span></div>
-        <div class="bar-col"><div class="bar" style="height: 60%"></div><span>Thu</span></div>
-        <div class="bar-col"><div class="bar" style="height: 55%"></div><span>Fri</span></div>
-        <div class="bar-col"><div class="bar" style="height: 80%"></div><span>Sat</span></div>
+    <!-- Row 3: Mini Reports -->
+    <div class="charts-row split-3">
+      <div class="card p-6">
+        <h3 class="mb-6 font-bold text-dark text-lg">Cart abandonment</h3>
+        <div class="flex-between mb-4"><span class="text-muted">Abandonment rate</span><strong class="text-dark">{metrics.miniReports?.cartAbandonment?.rate || 0}%</strong></div>
+        <div class="flex-between mb-4"><span class="text-muted">Abandoned value</span><strong class="text-dark">₹{metrics.miniReports?.cartAbandonment?.value?.toLocaleString() || 0}</strong></div>
+        <div class="flex-between mb-4"><span class="text-muted">Recovery rate</span><strong class="text-green">{metrics.miniReports?.cartAbandonment?.recoveryRate || 0}%</strong></div>
+        <div class="flex-between"><span class="text-muted">Recovered revenue</span><strong class="text-green">₹{metrics.miniReports?.cartAbandonment?.recoveredRevenue?.toLocaleString() || 0}</strong></div>
       </div>
+      <div class="card p-6">
+        <h3 class="mb-6 font-bold text-dark text-lg">Shipping report</h3>
+        <div class="flex-between mb-4"><span class="text-muted">Delhivery</span><strong class="text-dark">{metrics.miniReports?.shipping?.delhivery?.share || 0}% &nbsp; {metrics.miniReports?.shipping?.delhivery?.timeDays || 0} days</strong></div>
+        <div class="flex-between mb-4"><span class="text-muted">Bluedart</span><strong class="text-dark">{metrics.miniReports?.shipping?.bluedart?.share || 0}% &nbsp; {metrics.miniReports?.shipping?.bluedart?.timeDays || 0} days</strong></div>
+        <div class="flex-between mb-4"><span class="text-muted">Ekart</span><strong class="text-dark">14% &nbsp; 3.1 days</strong></div>
+        <div class="flex-between"><span class="text-muted">RTO rate</span><strong class="text-dark">{metrics.topMetrics?.rtoRate?.value || 0}%</strong></div>
+      </div>
+      <div class="card p-6">
+        <h3 class="mb-6 font-bold text-dark text-lg">Customer mix</h3>
+        <div class="flex-between mb-4"><span class="text-muted">New customers</span><strong class="text-dark">{metrics.miniReports?.customerMix?.new || 0}%</strong></div>
+        <div class="flex-between mb-4"><span class="text-muted">Returning</span><strong class="text-dark">{metrics.miniReports?.customerMix?.returning || 0}%</strong></div>
+        <div class="flex-between mb-4"><span class="text-muted">Top state</span><strong class="text-dark">{metrics.miniReports?.customerMix?.topState || 'N/A'}</strong></div>
+        <div class="flex-between"><span class="text-muted">Top city</span><strong class="text-dark">{metrics.miniReports?.customerMix?.topCity || 'N/A'}</strong></div>
+      </div>
+    </div>
+
+    <!-- Product Performance Table -->
+    <div class="card mb-10">
+      <div class="card-header border-0 pb-0">
+        <h3>Product performance</h3>
+      </div>
+      <div class="table-responsive mt-4 p-x">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>PRODUCT</th>
+              <th>UNITS SOLD</th>
+              <th>REVENUE</th>
+              <th>CONV. RATE</th>
+              <th class="text-right">STOCK</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each metrics.productPerformance || [] as item}
+              <tr>
+                <td class="font-medium text-dark text-sm">{item.name}</td>
+                <td class="text-dark text-sm">{item.sold}</td>
+                <td class="text-dark text-sm">₹{item.revenue?.toLocaleString() || 0}</td>
+                <td class="text-dark text-sm">{item.rate}%</td>
+                <td class="text-right">
+                  {#if item.lowStock}
+                    <span class="badge-red-light">{item.stock}</span>
+                  {:else}
+                    <span class="badge-gray-light">{item.stock}</span>
+                  {/if}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Microsoft Clarity -->
+    <div class="section-title">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="MS" class="s-icon" />
+      <h3>Microsoft Clarity</h3>
     </div>
     
-    <div class="card">
-      <div class="card-header border-0 pb-0">
-        <h3>Ad performance (UTM)</h3>
+    <div class="card p-6 mb-10">
+      <div class="charts-row split-2-1 border-bottom-dashed pb-6">
+        <div>
+          <h4 class="text-sm font-bold text-dark mb-4">Heatmap Preview</h4>
+          <div class="clarity-grid">
+            <div class="a-stat-box">
+              <span class="a-label">HEATMAP SESSIONS</span>
+              <span class="a-val">{metrics.microsoftClarity?.heatmapSessions?.value || 0}</span>
+              <span class="a-trend green">{metrics.microsoftClarity?.heatmapSessions?.trend || ''}</span>
+            </div>
+            <div class="a-stat-box">
+              <span class="a-label">SESSION RECORDINGS</span>
+              <span class="a-val">{metrics.microsoftClarity?.sessionRecordings?.value || 0}</span>
+              <span class="a-trend gray">Avg {metrics.microsoftClarity?.sessionRecordings?.avgTime || '0s'}</span>
+            </div>
+            <div class="a-stat-box red-box">
+              <span class="a-label red">RAGE CLICKS</span>
+              <span class="a-val red">{metrics.microsoftClarity?.rageClicks || 0}</span>
+              <span class="a-trend red">Check Checkout</span>
+            </div>
+            <div class="a-stat-box red-box-light">
+              <span class="a-label red">DEAD CLICKS</span>
+              <span class="a-val">{metrics.microsoftClarity?.deadClicks?.value || 0}</span>
+              <span class="a-trend red">{metrics.microsoftClarity?.deadClicks?.rate || 0}% rate</span>
+            </div>
+          </div>
+        </div>
+        <div class="border-left-dashed pl-6">
+          <h4 class="text-sm font-bold text-dark mb-4">Top Clicked Pages</h4>
+          <div class="flex-between mb-4"><span class="text-muted text-sm">/products/hair-oil</span><strong class="text-dark text-sm">12.4k clicks</strong></div>
+          <div class="flex-between mb-4"><span class="text-muted text-sm">/checkout</span><strong class="text-dark text-sm">8.2k clicks</strong></div>
+          <div class="flex-between mb-4"><span class="text-muted text-sm">/home</span><strong class="text-dark text-sm">7.1k clicks</strong></div>
+          <div class="flex-between"><span class="text-muted text-sm">/offers</span><strong class="text-dark text-sm">3.5k clicks</strong></div>
+        </div>
       </div>
-      <table class="data-table mt-4 no-borders">
-        <thead>
-          <tr>
-            <th>CAMPAIGN</th>
-            <th>ORDERS</th>
-            <th>REVENUE</th>
-            <th>AOV</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each Array(4) as _}
-          <tr>
-            <td class="font-medium text-dark text-sm">Facebook - Hair Fall - Jun26</td>
-            <td class="text-dark text-sm">32</td>
-            <td class="text-dark text-sm">₹45,000</td>
-            <td class="text-dark text-sm">₹1,406</td>
-          </tr>
-          {/each}
-        </tbody>
-      </table>
+      <div class="pt-6">
+        <h4 class="text-sm font-bold text-dark mb-4">Session Recordings</h4>
+        <table class="data-table no-borders">
+          <thead><tr><th>USER ID</th><th>DEVICE</th><th>DURATION</th><th>ACTION</th></tr></thead>
+          <tbody>
+            <tr><td class="text-muted text-sm">#USR-8821</td><td class="text-dark text-sm">Mobile (iOS)</td><td class="text-dark text-sm">04:22</td><td><span class="text-primary font-bold text-sm">Play</span></td></tr>
+            <tr><td class="text-muted text-sm">#USR-9012</td><td class="text-dark text-sm">Desktop (Chrome)</td><td class="text-dark text-sm">02:15</td><td><span class="text-primary font-bold text-sm">Play</span></td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
 
-  <!-- Row 3: Mini Reports -->
-  <div class="charts-row split-3">
-    <div class="card p-6">
-      <h3 class="mb-6 font-bold text-dark text-lg">Cart abandonment</h3>
-      <div class="flex-between mb-4"><span class="text-muted">Abandonment rate</span><strong class="text-dark">67.2%</strong></div>
-      <div class="flex-between mb-4"><span class="text-muted">Abandoned value</span><strong class="text-dark">₹3,84,200</strong></div>
-      <div class="flex-between mb-4"><span class="text-muted">Recovery rate</span><strong class="text-green">12.3%</strong></div>
-      <div class="flex-between"><span class="text-muted">Recovered revenue</span><strong class="text-green">₹47,250</strong></div>
+    <!-- Google Analytics 4 -->
+    <div class="section-title">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" class="s-icon" />
+      <h3>Google Analytics 4</h3>
     </div>
-    <div class="card p-6">
-      <h3 class="mb-6 font-bold text-dark text-lg">Shipping report</h3>
-      <div class="flex-between mb-4"><span class="text-muted">Delhivery</span><strong class="text-dark">58% &nbsp; 2.3 days</strong></div>
-      <div class="flex-between mb-4"><span class="text-muted">Bluedart</span><strong class="text-dark">28% &nbsp; 1.8 days</strong></div>
-      <div class="flex-between mb-4"><span class="text-muted">Ekart</span><strong class="text-dark">14% &nbsp; 3.1 days</strong></div>
-      <div class="flex-between"><span class="text-muted">RTO rate</span><strong class="text-dark">6.2%</strong></div>
-    </div>
-    <div class="card p-6">
-      <h3 class="mb-6 font-bold text-dark text-lg">Customer mix</h3>
-      <div class="flex-between mb-4"><span class="text-muted">New customers</span><strong class="text-dark">48%</strong></div>
-      <div class="flex-between mb-4"><span class="text-muted">Returning</span><strong class="text-dark">52%</strong></div>
-      <div class="flex-between mb-4"><span class="text-muted">Top state</span><strong class="text-dark">Maharashtra (24%)</strong></div>
-      <div class="flex-between"><span class="text-muted">Top city</span><strong class="text-dark">Mumbai (11%)</strong></div>
-    </div>
-  </div>
 
-  <!-- Product Performance Table -->
-  <div class="card mb-10">
-    <div class="card-header border-0 pb-0">
-      <h3>Product performance</h3>
+    <div class="card p-6 mb-10">
+      <div class="metrics-grid">
+        <div class="metric-card shadow-none border-gray">
+          <div class="metric-title">USERS</div>
+          <div class="metric-value">{metrics.googleAnalytics?.users?.value || 0}</div>
+          <div class="metric-trend {metrics.googleAnalytics?.users?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.users?.trend || '+0%'}</div>
+        </div>
+        <div class="metric-card shadow-none border-gray">
+          <div class="metric-title">SESSIONS</div>
+          <div class="metric-value">{metrics.googleAnalytics?.sessions?.value || 0}</div>
+          <div class="metric-trend {metrics.googleAnalytics?.sessions?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.sessions?.trend || '+0%'}</div>
+        </div>
+        <div class="metric-card shadow-none border-gray">
+          <div class="metric-title">AVG SESSION TIME</div>
+          <div class="metric-value">{metrics.googleAnalytics?.avgSessionTime?.value || '0s'}</div>
+          <div class="metric-trend {metrics.googleAnalytics?.avgSessionTime?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.avgSessionTime?.trend || '+0%'}</div>
+        </div>
+        <div class="metric-card shadow-none border-gray">
+          <div class="metric-title">BOUNCE RATE</div>
+          <div class="metric-value">{metrics.googleAnalytics?.bounceRate?.value || '0%'}</div>
+          <div class="metric-trend {metrics.googleAnalytics?.bounceRate?.trend?.includes('-') ? 'positive' : 'negative'}">{metrics.googleAnalytics?.bounceRate?.trend || '+0%'}</div>
+        </div>
+      </div>
+      
+      <h4 class="text-sm font-bold text-dark mt-6 mb-4">Traffic Sources</h4>
+      <div class="flex align-center gap-10">
+        <svg viewBox="0 0 100 100" class="circular-chart small-circle">
+          <path fill="none" stroke="#F05139" stroke-width="15" stroke-dasharray="45 100" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+          <path fill="none" stroke="#3B82F6" stroke-width="15" stroke-dasharray="30 100" stroke-dashoffset="-45" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+          <path fill="none" stroke="#10B981" stroke-width="15" stroke-dasharray="15 100" stroke-dashoffset="-75" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+          <path fill="none" stroke="#8B5CF6" stroke-width="15" stroke-dasharray="10 100" stroke-dashoffset="-90" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+        </svg>
+        <div class="traffic-legend">
+          <div class="tl-row"><span class="dot red"></span> <span class="text-sm text-dark">Organic Search (45%)</span></div>
+          <div class="tl-row"><span class="dot blue"></span> <span class="text-sm text-dark">Direct (30%)</span></div>
+          <div class="tl-row"><span class="dot green"></span> <span class="text-sm text-dark">Social (15%)</span></div>
+          <div class="tl-row"><span class="dot purple"></span> <span class="text-sm text-dark">Referral (10%)</span></div>
+        </div>
+      </div>
     </div>
-    <div class="table-responsive mt-4 p-x">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>PRODUCT</th>
-            <th>UNITS SOLD</th>
-            <th>REVENUE</th>
-            <th>CONV. RATE</th>
-            <th class="text-right">STOCK</th>
-          </tr>
-        </thead>
+
+    <!-- Meta & Search Console -->
+    <div class="section-title">
+      <span class="blue-icon">∞</span>
+      <h3>Meta Ads Campaign Performance</h3>
+    </div>
+    <div class="card mb-10">
+      <table class="data-table no-borders m-4">
+        <thead><tr><th>CAMPAIGN</th><th>SPEND</th><th>CLICKS</th><th>ROAS</th><th>CONVERSIONS</th></tr></thead>
         <tbody>
-          {#each productPerformance as item}
+          {#each metrics.adPerformance || [] as ad}
             <tr>
-              <td class="font-medium text-dark text-sm">{item.name}</td>
-              <td class="text-dark text-sm">{item.sold}</td>
-              <td class="text-dark text-sm">{item.revenue}</td>
-              <td class="text-dark text-sm">{item.rate}</td>
-              <td class="text-right">
-                {#if item.lowStock}
-                  <span class="badge-red-light">{item.stock}</span>
-                {:else}
-                  <span class="badge-gray-light">{item.stock}</span>
-                {/if}
-              </td>
+              <td class="font-medium text-dark text-sm">{ad.campaign}</td>
+              <td class="text-dark text-sm">₹{ad.spend?.toLocaleString() || 0}</td>
+              <td class="text-dark text-sm">{ad.clicks?.toLocaleString() || 0}</td>
+              <td class="text-green font-bold text-sm">{ad.roas}x</td>
+              <td class="text-dark text-sm">{ad.conversions}</td>
             </tr>
           {/each}
         </tbody>
       </table>
     </div>
-  </div>
 
-  <!-- Microsoft Clarity -->
-  <div class="section-title">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="MS" class="s-icon" />
-    <h3>Microsoft Clarity</h3>
-  </div>
-  
-  <div class="card p-6 mb-10">
-    <div class="charts-row split-2-1 border-bottom-dashed pb-6">
-      <div>
-        <h4 class="text-sm font-bold text-dark mb-4">Heatmap Preview</h4>
-        <div class="clarity-grid">
-          <div class="a-stat-box">
-            <span class="a-label">HEATMAP SESSIONS</span>
-            <span class="a-val">3,429</span>
-            <span class="a-trend green">+12% vs LW</span>
-          </div>
-          <div class="a-stat-box">
-            <span class="a-label">SESSION RECORDINGS</span>
-            <span class="a-val">1,892</span>
-            <span class="a-trend gray">Avg 4m 12s</span>
-          </div>
-          <div class="a-stat-box red-box">
-            <span class="a-label red">RAGE CLICKS</span>
-            <span class="a-val red">142</span>
-            <span class="a-trend red">Check Checkout</span>
-          </div>
-          <div class="a-stat-box red-box-light">
-            <span class="a-label red">DEAD CLICKS</span>
-            <span class="a-val">48</span>
-            <span class="a-trend red">2.1% rate</span>
-          </div>
-        </div>
-      </div>
-      <div class="border-left-dashed pl-6">
-        <h4 class="text-sm font-bold text-dark mb-4">Top Clicked Pages</h4>
-        <div class="flex-between mb-4"><span class="text-muted text-sm">/products/hair-oil</span><strong class="text-dark text-sm">12.4k clicks</strong></div>
-        <div class="flex-between mb-4"><span class="text-muted text-sm">/checkout</span><strong class="text-dark text-sm">8.2k clicks</strong></div>
-        <div class="flex-between mb-4"><span class="text-muted text-sm">/home</span><strong class="text-dark text-sm">7.1k clicks</strong></div>
-        <div class="flex-between"><span class="text-muted text-sm">/offers</span><strong class="text-dark text-sm">3.5k clicks</strong></div>
-      </div>
+    <div class="section-title">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" class="s-icon" />
+      <h3>Google Search Console</h3>
     </div>
-    <div class="pt-6">
-      <h4 class="text-sm font-bold text-dark mb-4">Session Recordings</h4>
-      <table class="data-table no-borders">
-        <thead><tr><th>USER ID</th><th>DEVICE</th><th>DURATION</th><th>ACTION</th></tr></thead>
+    <div class="card mb-10">
+      <table class="data-table no-borders m-4">
+        <thead><tr><th>TOP KEYWORDS</th><th>CLICKS</th><th>IMPRESSIONS</th><th>AVG. POSITION</th></tr></thead>
         <tbody>
-          <tr><td class="text-muted text-sm">#USR-8821</td><td class="text-dark text-sm">Mobile (iOS)</td><td class="text-dark text-sm">04:22</td><td><span class="text-primary font-bold text-sm">Play</span></td></tr>
-          <tr><td class="text-muted text-sm">#USR-9012</td><td class="text-dark text-sm">Desktop (Chrome)</td><td class="text-dark text-sm">02:15</td><td><span class="text-primary font-bold text-sm">Play</span></td></tr>
+          {#each metrics.searchConsole || [] as sc}
+            <tr>
+              <td class="font-medium text-dark text-sm">{sc.keyword}</td>
+              <td class="text-dark text-sm">{sc.clicks}</td>
+              <td class="text-dark text-sm">{sc.impressions}</td>
+              <td class="text-dark text-sm">{sc.pos}</td>
+            </tr>
+          {/each}
         </tbody>
       </table>
     </div>
-  </div>
 
-  <!-- Google Analytics 4 -->
-  <div class="section-title">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" class="s-icon" />
-    <h3>Google Analytics 4</h3>
-  </div>
-
-  <div class="card p-6 mb-10">
-    <div class="metrics-grid">
-      <div class="metric-card shadow-none border-gray">
-        <div class="metric-title">USERS</div>
-        <div class="metric-value">42.5k</div>
-        <div class="metric-trend positive">+12%</div>
+    <!-- COD vs Prepaid Split -->
+    <div class="section-title">
+      <h3>COD vs Prepaid Comparison</h3>
+    </div>
+    <div class="charts-row split-2-1" style="grid-template-columns: 1fr 1fr;">
+      <div class="card p-6">
+        <h4 class="text-sm font-bold text-dark mb-6">Revenue Split</h4>
+        <div class="progress-bg big-progress">
+          <div class="progress-fill red" style="width: {metrics.paymentMethods?.prepaid?.percentage || 0}%"><span class="p-text">{metrics.paymentMethods?.prepaid?.percentage || 0}% Prepaid</span></div>
+          <div class="progress-fill gray" style="width: {metrics.paymentMethods?.cod?.percentage || 0}%"><span class="p-text text-dark">{metrics.paymentMethods?.cod?.percentage || 0}% COD</span></div>
+        </div>
+        <p class="text-xs text-muted mt-4 text-center">Prepaid orders drive higher lifetime value and lower cancellation rates.</p>
       </div>
-      <div class="metric-card shadow-none border-gray">
-        <div class="metric-title">SESSIONS</div>
-        <div class="metric-value">68.2k</div>
-        <div class="metric-trend positive">+8%</div>
-      </div>
-      <div class="metric-card shadow-none border-gray">
-        <div class="metric-title">AVG SESSION TIME</div>
-        <div class="metric-value">2m 45s</div>
-        <div class="metric-trend negative">-2%</div>
-      </div>
-      <div class="metric-card shadow-none border-gray">
-        <div class="metric-title">BOUNCE RATE</div>
-        <div class="metric-value">42.1%</div>
-        <div class="metric-trend positive">-5%</div>
+      <div class="card p-6">
+        <h4 class="text-sm font-bold text-dark mb-6">Orders Split</h4>
+        <div class="progress-bg big-progress">
+          <div class="progress-fill red" style="width: 52%"><span class="p-text">52% Prepaid</span></div>
+          <div class="progress-fill gray" style="width: 48%"><span class="p-text text-dark">48% COD</span></div>
+        </div>
+        <p class="text-xs text-muted mt-4 text-center">Order count is nearly equal, but COD has a 12% higher RTO rate.</p>
       </div>
     </div>
-    
-    <h4 class="text-sm font-bold text-dark mt-6 mb-4">Traffic Sources</h4>
-    <div class="flex align-center gap-10">
-      <svg viewBox="0 0 100 100" class="circular-chart small-circle">
-        <path fill="none" stroke="#F05139" stroke-width="15" stroke-dasharray="45 100" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-        <path fill="none" stroke="#3B82F6" stroke-width="15" stroke-dasharray="30 100" stroke-dashoffset="-45" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-        <path fill="none" stroke="#10B981" stroke-width="15" stroke-dasharray="15 100" stroke-dashoffset="-75" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-        <path fill="none" stroke="#8B5CF6" stroke-width="15" stroke-dasharray="10 100" stroke-dashoffset="-90" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-      </svg>
-      <div class="traffic-legend">
-        <div class="tl-row"><span class="dot red"></span> <span class="text-sm text-dark">Organic Search (45%)</span></div>
-        <div class="tl-row"><span class="dot blue"></span> <span class="text-sm text-dark">Direct (30%)</span></div>
-        <div class="tl-row"><span class="dot green"></span> <span class="text-sm text-dark">Social (15%)</span></div>
-        <div class="tl-row"><span class="dot purple"></span> <span class="text-sm text-dark">Referral (10%)</span></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Meta & Search Console -->
-  <div class="section-title">
-    <span class="blue-icon">∞</span>
-    <h3>Meta Ads Campaign Performance</h3>
-  </div>
-  <div class="card mb-10">
-    <table class="data-table no-borders m-4">
-      <thead><tr><th>CAMPAIGN</th><th>SPEND</th><th>CLICKS</th><th>ROAS</th><th>CONVERSIONS</th></tr></thead>
-      <tbody>
-        {#each metaAds as ad}
-          <tr>
-            <td class="font-medium text-dark text-sm">{ad.campaign}</td>
-            <td class="text-dark text-sm">{ad.spend}</td>
-            <td class="text-dark text-sm">{ad.clicks}</td>
-            <td class="text-green font-bold text-sm">{ad.roas}</td>
-            <td class="text-dark text-sm">{ad.conversions}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
-
-  <div class="section-title">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google" class="s-icon" />
-    <h3>Google Search Console</h3>
-  </div>
-  <div class="card mb-10">
-    <table class="data-table no-borders m-4">
-      <thead><tr><th>TOP KEYWORDS</th><th>CLICKS</th><th>IMPRESSIONS</th><th>AVG. POSITION</th></tr></thead>
-      <tbody>
-        {#each searchConsole as sc}
-          <tr>
-            <td class="font-medium text-dark text-sm">{sc.keyword}</td>
-            <td class="text-dark text-sm">{sc.clicks}</td>
-            <td class="text-dark text-sm">{sc.impressions}</td>
-            <td class="text-dark text-sm">{sc.pos}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- COD vs Prepaid Split -->
-  <div class="section-title">
-    <h3>COD vs Prepaid Comparison</h3>
-  </div>
-  <div class="charts-row split-2-1" style="grid-template-columns: 1fr 1fr;">
-    <div class="card p-6">
-      <h4 class="text-sm font-bold text-dark mb-6">Revenue Split</h4>
-      <div class="progress-bg big-progress">
-        <div class="progress-fill red" style="width: 65%"><span class="p-text">65% Prepaid</span></div>
-        <div class="progress-fill gray" style="width: 35%"><span class="p-text text-dark">35% COD</span></div>
-      </div>
-      <p class="text-xs text-muted mt-4 text-center">Prepaid orders drive higher lifetime value and lower cancellation rates.</p>
-    </div>
-    <div class="card p-6">
-      <h4 class="text-sm font-bold text-dark mb-6">Orders Split</h4>
-      <div class="progress-bg big-progress">
-        <div class="progress-fill red" style="width: 52%"><span class="p-text">52% Prepaid</span></div>
-        <div class="progress-fill gray" style="width: 48%"><span class="p-text text-dark">48% COD</span></div>
-      </div>
-      <p class="text-xs text-muted mt-4 text-center">Order count is nearly equal, but COD has a 12% higher RTO rate.</p>
-    </div>
-  </div>
-
+  {/if}
 </div>
 
 <style>
@@ -374,6 +388,56 @@
     max-width: 1200px;
     margin: 0 auto;
     font-family: var(--font-body);
+  }
+
+  /* Top Nav */
+  .top-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    background: transparent;
+  }
+
+  .search-bar {
+    display: flex;
+    align-items: center;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 8px 16px;
+    width: 320px;
+    gap: 8px;
+  }
+
+  .search-bar input {
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100%;
+    font-size: 14px;
+    color: #111827;
+  }
+
+  .search-bar input::placeholder {
+    color: #9CA3AF;
+  }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .icon-btn {
+    color: #6B7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .icon-btn:hover {
+    color: #111827;
   }
 
   /* Header */

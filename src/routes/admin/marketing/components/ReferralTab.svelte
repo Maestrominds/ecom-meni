@@ -1,20 +1,20 @@
 <script lang="ts">
-  // Referral specific top metrics
+  let { data = {} } = $props();
 </script>
 
 <!-- Metrics Cards -->
 <div class="metrics-grid">
   <div class="metric-card">
-    <div class="metric-title">TOTAL AFFILIATES</div>
-    <div class="metric-value">42</div>
+    <div class="metric-title">TOTAL REFERRALS</div>
+    <div class="metric-value">{data?.totalReferrals || 0}</div>
   </div>
   <div class="metric-card">
-    <div class="metric-title">TOTAL SALES</div>
-    <div class="metric-value">₹1,24,500</div>
+    <div class="metric-title">REVENUE FROM REFERRALS</div>
+    <div class="metric-value">₹{data?.revenue || 0}</div>
   </div>
   <div class="metric-card">
-    <div class="metric-title">COMMISSION PAID</div>
-    <div class="metric-value text-primary">₹12,450</div>
+    <div class="metric-title">CREDIT ISSUED</div>
+    <div class="metric-value text-primary">₹{data?.creditIssued || 0}</div>
   </div>
 </div>
 
@@ -31,7 +31,7 @@
     <div class="form-body p-6">
       <div class="form-group mb-8">
         <label>AMOUNT</label>
-        <input type="text" value="₹100" class="bg-light" />
+        <input type="text" value="₹{data?.rewardAmount || 100}" class="bg-light" />
       </div>
       
       <button class="btn-primary w-full justify-center">Enable Referral</button>
@@ -47,17 +47,17 @@
       
       <div class="analytics-row flex-between mb-4">
         <span class="text-muted">Total Referrals</span>
-        <strong class="text-dark">1,240</strong>
+        <strong class="text-dark">{data?.totalReferrals || 0}</strong>
       </div>
       
       <div class="analytics-row flex-between mb-4">
         <span class="text-muted">Conversion Rate</span>
-        <strong class="text-green">8.4%</strong>
+        <strong class="text-green">{data?.conversionRate || '0%'}</strong>
       </div>
       
       <div class="analytics-row flex-between">
         <span class="text-muted">Credit Issued</span>
-        <strong class="text-dark">₹12,400</strong>
+        <strong class="text-dark">₹{data?.creditIssued || 0}</strong>
       </div>
 
     </div>

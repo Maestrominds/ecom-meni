@@ -1,25 +1,23 @@
 <script lang="ts">
   import { Download } from 'lucide-svelte';
 
-  const affiliates = [
-    { name: 'Ananya Kapoor', code: 'AK-MENI-10', sales: '₹42,000', comm: '₹4,200', status: 'Premium' },
-    { name: 'Rohan Varma', code: 'RV-MENI-15', sales: '₹18,500', comm: '₹1,850', status: 'Active' }
-  ];
+  let { data = {} } = $props();
+  let affiliates = $derived(data?.list || []);
 </script>
 
 <!-- Metrics Cards -->
 <div class="metrics-grid">
   <div class="metric-card">
     <div class="metric-title">TOTAL AFFILIATES</div>
-    <div class="metric-value">42</div>
+    <div class="metric-value">{data?.totalAffiliates || 0}</div>
   </div>
   <div class="metric-card">
     <div class="metric-title">TOTAL SALES</div>
-    <div class="metric-value">₹1,24,500</div>
+    <div class="metric-value">₹{data?.totalSales || 0}</div>
   </div>
   <div class="metric-card">
     <div class="metric-title">COMMISSION PAID</div>
-    <div class="metric-value text-primary">₹12,450</div>
+    <div class="metric-value text-primary">₹{data?.commissionPaid || 0}</div>
   </div>
 </div>
 

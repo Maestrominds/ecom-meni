@@ -1,6 +1,8 @@
 <script lang="ts">
   import { enhance } from '$app/forms';
   import { Lock, Mail, ArrowRight } from 'lucide-svelte';
+  import { store } from '$lib/store.svelte';
+  import { goto } from '$app/navigation';
   
   let { form } = $props();
   let isLoading = $state(false);
@@ -41,8 +43,11 @@
 
         <form method="POST" use:enhance={() => {
             isLoading = true;
-            return async ({ update }) => {
+            return async ({ result, update }) => {
               isLoading = false;
+              if (result.type === 'redirect' || result.type === 'success') {
+                store.isAdminLoggedIn = true;
+              }
               update();
             };
           }}>

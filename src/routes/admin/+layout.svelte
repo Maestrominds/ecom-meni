@@ -1,6 +1,20 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { page } from '$app/state';
+  import { browser } from '$app/environment';
+  import { goto } from '$app/navigation';
+  import { store } from '$lib/store.svelte';
+  
+  let { data, children } = $props();
+
+  // Sync server cookie state with client store
+  $effect.pre(() => {
+    if (data.hasToken && !store.isAdminLoggedIn) {
+      store.isAdminLoggedIn = true;
+    } else if (!data.hasToken && store.isAdminLoggedIn) {
+      store.isAdminLoggedIn = false;
+    }
+  });
   import companyLogo from '$lib/assets/company_logo.svg';
   import { 
     LayoutDashboard, 
@@ -15,10 +29,8 @@
     Settings,
     Search,
     Bell,
-    LogOut 
+    LogOut
   } from 'lucide-svelte';
-
-  let { children } = $props();
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
@@ -35,6 +47,33 @@
 
   // Disable global layout header and footer inside admin panel
   // SvelteKit layouts wrap everything, but we can customize styling or omit header/footer dynamically inside the root layout or here by styling our page.
+  
+  $effect(() => {
+    if (!browser) return;
+    
+    // Exact match for login page
+    const isLoginPage = page.url.pathname === '/admin/login';
+    
+    // Exclude /admin itself so it can natively throw a 404 without redirect loop
+    const isRootAdmin = page.url.pathname === '/admin' || page.url.pathname === '/admin/';
+    
+    if (!store.isAdminLoggedIn && !isLoginPage && !isRootAdmin && page.url.pathname.startsWith('/admin')) {
+      goto('/admin/login');
+    } else if (store.isAdminLoggedIn && isLoginPage) {
+      goto('/admin/dashboard');
+    }
+  });
+
+  async function handleLogout(e: Event) {
+    e.preventDefault();
+    try {
+      await fetch('/admin/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
+    store.isAdminLoggedIn = false;
+    goto('/admin/login', { invalidateAll: true });
+  }
 </script>
 
 {#if page.url.pathname === '/admin/login'}
@@ -66,7 +105,7 @@
       </nav>
 
       <div class="sidebar-footer">
-        <a href="/" class="nav-item logout">
+        <a href="/admin/login" onclick={handleLogout} class="nav-item logout">
           <LogOut size={18} />
           <span>Exit Admin</span>
         </a>

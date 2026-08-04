@@ -1,11 +1,8 @@
 <script lang="ts">
   import { Settings, Play, Pause, Download, ChevronDown, Mail, MessageSquare } from 'lucide-svelte';
 
-  const activeWorkflows = [
-    { name: 'High Value Cart Recovery', trigger: 'Cart > ₹10k', status: 'ACTIVE', rate: '24.2%', revenue: '₹1,84,300', modified: '2 hours ago' },
-    { name: 'High Value Cart Recovery', trigger: 'Cart > ₹10k', status: 'ACTIVE', rate: '24.2%', revenue: '₹1,84,300', modified: '2 hours ago' },
-    { name: 'High Value Cart Recovery', trigger: 'Cart > ₹10k', status: 'ACTIVE', rate: '24.2%', revenue: '₹1,84,300', modified: '2 hours ago' }
-  ];
+  let { data = {} } = $props();
+  let activeWorkflows = $derived(data?.workflows || []);
 </script>
 
 <div class="automation-container">
@@ -27,29 +24,29 @@
     <div class="metric-card">
       <div class="metric-title mb-2">ACTIVE WORKFLOWS</div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">12</div>
-        <div class="text-blue text-xs font-bold mb-1">+2 this month</div>
+        <div class="metric-value">{data?.active || 0}</div>
+        <div class="text-blue text-xs font-bold mb-1">Live</div>
       </div>
     </div>
     <div class="metric-card">
       <div class="metric-title mb-2">RECOVERY RATE</div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">18.5%</div>
-        <div class="text-blue text-xs font-bold mb-1">+3.2%</div>
+        <div class="metric-value">{data?.recoveryRate || '0%'}</div>
+        <div class="text-blue text-xs font-bold mb-1">Avg</div>
       </div>
     </div>
     <div class="metric-card">
       <div class="metric-title mb-2">RECOVERED REVENUE</div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">₹4,82,290</div>
-        <div class="text-blue text-xs font-bold mb-1">+12.4%</div>
+        <div class="metric-value">₹{data?.recoveredRevenue || 0}</div>
+        <div class="text-blue text-xs font-bold mb-1">Total</div>
       </div>
     </div>
     <div class="metric-card">
       <div class="metric-title mb-2">SENT TODAY</div>
       <div class="flex align-end gap-8">
-        <div class="metric-value">1,248</div>
-        <div class="text-red text-xs font-bold mb-1">-1.5%</div>
+        <div class="metric-value">{data?.sentToday || 0}</div>
+        <div class="text-red text-xs font-bold mb-1">Messages</div>
       </div>
     </div>
   </div>
@@ -217,7 +214,7 @@
               <circle cx="50" cy="50" r="40" fill="none" stroke="#F05139" stroke-width="12" stroke-dasharray="130 1000" />
             </svg>
             <div class="absolute-center text-center">
-              <div class="text-2xl font-bold text-dark">18.5%</div>
+              <div class="text-2xl font-bold text-dark">{data?.recoveryRate || '0%'}</div>
               <div class="text-xs text-muted font-bold">OVERALL</div>
             </div>
           </div>
