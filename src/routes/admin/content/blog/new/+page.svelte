@@ -2,7 +2,7 @@
   import { ArrowLeft, Save, Image as ImageIcon } from 'lucide-svelte';
   import { env } from '$env/dynamic/public';
   import { goto } from '$app/navigation';
-  import { uploadToCloudinary } from '$lib/utils/upload';
+  import { uploadToR2 } from '$lib/utils/upload';
 
   const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -18,7 +18,7 @@
       const file = input.files[0];
       
       try {
-        imageUrl = await uploadToCloudinary(file);
+        imageUrl = await uploadToR2(file);
       } catch (err) {
         console.error(err);
         alert("Image upload failed, but you can still save text content.");
