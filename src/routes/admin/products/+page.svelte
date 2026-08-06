@@ -145,7 +145,7 @@
               <td>
                 <div class="product-cell">
                   {#if product.image}
-                    <div class="product-img" style="background-image: url('{product.image}')"></div>
+                    <img src={product.image} alt={product.name} class="product-img" loading="lazy" decoding="async" />
                   {:else}
                     <div class="product-img product-img-placeholder"></div>
                   {/if}
@@ -362,11 +362,12 @@
   }
 
   .product-img {
-    width: 40px;
-    height: 40px;
-    border-radius: 6px;
-    background-size: cover;
-    background-position: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    object-fit: cover;
+    object-position: center;
+    background-color: var(--surface-light);
   }
 
   .font-bold { font-weight: 700; }

@@ -357,7 +357,7 @@
               <a href="/product/{currentProductId}" class="video-overlay-details" style="pointer-events: auto; text-decoration: none;" onclick={(e) => e.stopPropagation()}>
                 {#if thumb}
                   <div class="video-product-link">
-                    <img src={thumb} alt="Linked Product" class="video-product-thumb" />
+                    <img src={thumb} alt="Linked Product" class="video-product-thumb" loading="lazy" decoding="async" />
                   </div>
                 {/if}
                 <div class="video-text-content">
@@ -399,12 +399,12 @@
 
   <!-- 8. Peach Fruit Face Wash -->
   <section class="promo-banner-section section-spacing">
-    <img src={peachWashImg} alt="Peach Fruit Face Wash Banner" class="full-width-img" />
+    <img src={peachWashImg} alt="Peach Fruit Face Wash Banner" class="full-width-img" loading="lazy" decoding="async" />
   </section>
 
   <!-- 9. Founder's Story -->
   <section class="founder-section section-spacing">
-    <img src={founderStoryImg} alt="Our Founder's Story" class="full-width-img" />
+    <img src={founderStoryImg} alt="Our Founder's Story" class="full-width-img" loading="lazy" decoding="async" />
   </section>
 
   <!-- 10. Why Meni? -->

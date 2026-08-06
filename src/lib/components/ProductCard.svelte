@@ -21,10 +21,10 @@
 
 <div class="product-card">
   <a href={`/product/${product.id}`} class="product-link">
-    <div 
-      class="product-img-wrapper placeholder-img" 
-      style="background-image: url('{product.image_url}'); background-size: cover; background-position: center;"
-    >
+    <div class="product-img-wrapper placeholder-img">
+      {#if product.image_url}
+        <img src={product.image_url} alt={product.name} class="product-img" loading="lazy" decoding="async" />
+      {/if}
       {#if badge}
         <span class="product-badge" class:trending={badge === 'Trending now'}>{badge}</span>
       {/if}
@@ -218,6 +218,13 @@
     background: var(--primary-hover);
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(229, 91, 60, 0.3);
+  }
+
+  .product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
   }
 
   .btn-cart:active {
