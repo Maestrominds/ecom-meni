@@ -45,7 +45,7 @@
             {#each coupons as coupon}
             <tr>
               <td><span class="badge-gray">{coupon.code || coupon.Code || 'N/A'}</span></td>
-              <td class="text-dark font-medium">{coupon.discount || coupon.DiscountPercentage + '% off'}</td>
+              <td class="text-dark font-medium">{coupon.discount_text || coupon.discount || coupon.DiscountPercentage + '% off'}</td>
               <td class="text-dark font-medium">{coupon.minOrder || '₹' + coupon.MinOrderValue}</td>
               <td class="text-muted">{coupon.uses || (coupon.UsageCount + ' / ' + coupon.MaxUses)}</td>
               <td class="text-dark font-medium">{coupon.expires || (coupon.ValidUntil ? new Date(coupon.ValidUntil).toLocaleDateString() : 'N/A')}</td>
@@ -57,20 +57,53 @@
     </div>
   </div>
 
-  <!-- Right: Automatic Discount Form -->
-  <div class="card form-card">
-    <div class="card-header border-0">
-      <h3>Automatic discount</h3>
-    </div>
-    <div class="form-body">
-      <div class="form-group">
-        <label>NAME</label>
-        <input type="text" value="Buy 2 get 10% off" />
+  <!-- Right: Forms -->
+  <div class="forms-column flex-col gap-24">
+    
+    <!-- 1. Manual Code Form -->
+    <div class="card form-card">
+      <div class="card-header border-0 pb-0">
+        <h3>Create Manual Code</h3>
       </div>
-      <div class="form-group">
-        <label>TYPE</label>
-        <select>
-          <option>Buy X get Y% off</option>
+      <div class="form-body pt-4">
+        <div class="form-group">
+          <label>COUPON CODE</label>
+          <input type="text" placeholder="e.g. DIWALI50" style="text-transform: uppercase;" />
+        </div>
+        <div class="form-row flex gap-16">
+          <div class="form-group half">
+            <label>DISCOUNT TYPE</label>
+            <select>
+              <option>Percentage (%)</option>
+              <option>Flat Amount (₹)</option>
+              <option>Free Shipping</option>
+            </select>
+          </div>
+          <div class="form-group half">
+            <label>VALUE</label>
+            <input type="number" placeholder="50" />
+          </div>
+        </div>
+        <button class="btn-save w-full">Create code</button>
+      </div>
+    </div>
+
+    <!-- 2. Automatic Discount Form -->
+    <div class="card form-card">
+      <div class="card-header border-0 pb-0">
+        <h3>Automatic discount</h3>
+      </div>
+      <div class="form-body pt-4">
+        <div class="form-group">
+          <label>NAME</label>
+          <input type="text" value="Buy 2 get 10% off" />
+        </div>
+        <div class="form-group">
+          <label>TYPE</label>
+          <select>
+            <option>Buy X get Y% off</option>
+            <option>Spend ₹X get Free Shipping</option>
+            <option>Buy 3 get 1 Free</option>
         </select>
       </div>
       <div class="form-row flex gap-16">
@@ -85,6 +118,7 @@
       </div>
       
       <button class="btn-save w-full">Save rule</button>
+    </div>
     </div>
   </div>
 </div>
@@ -166,8 +200,12 @@
   .form-group input, .form-group select { width: 100%; padding: 12px; border: 1px solid #E5E7EB; border-radius: 6px; background: #F9FAFB; font-size: 14px; color: #111827; outline: none; }
   
   .flex { display: flex; }
+  .flex-col { display: flex; flex-direction: column; }
   .gap-16 { gap: 16px; }
+  .gap-24 { gap: 24px; }
   .half { flex: 1; }
+  .pb-0 { padding-bottom: 0 !important; }
+  .pt-4 { padding-top: 16px; }
   .w-full { width: 100%; }
 
   .btn-save {

@@ -4,6 +4,26 @@
   let { data } = $props();
   let metrics = $derived(data.metrics);
   let error = $derived(data.error);
+
+  let chartPath = $derived((() => {
+    const reportData = metrics?.salesReport?.data || [];
+    if (reportData.length === 0) return 'M0,40 L100,40';
+    
+    // Find max value to scale the chart vertically
+    const maxVal = Math.max(...reportData, 1);
+    
+    // Build path points. SVG viewBox is 0 0 100 40.
+    // X goes from 0 to 100. Y goes from 40 (bottom) to 5 (top, leaving margin).
+    const points = reportData.map((val: number, i: number) => {
+      const x = reportData.length > 1 ? (i / (reportData.length - 1)) * 100 : 50;
+      const y = 40 - ((val / maxVal) * 35); // scale to height of 35
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    
+    return `M${points.map((p: string, i: number) => i === 0 ? p : `L${p}`).join(' ')}`;
+  })());
+  
+  let chartFillPath = $derived(`${chartPath} L100,40 L0,40 Z`);
 </script>
 
 <svelte:head>
@@ -81,8 +101,8 @@
         </div>
         <div class="chart-placeholder">
           <svg viewBox="0 0 100 40" class="line-chart" preserveAspectRatio="none">
-            <path d="M0,35 L10,32 L20,33 L30,28 L40,29 L50,23 L60,25 L70,18 L80,20 L90,12 L100,6" fill="none" stroke="#F05139" stroke-width="1.5" />
-            <path d="M0,40 L0,35 L10,32 L20,33 L30,28 L40,29 L50,23 L60,25 L70,18 L80,20 L90,12 L100,6 L100,40 Z" fill="url(#gradient)" opacity="0.1" />
+            <path d={chartPath} fill="none" stroke="#F05139" stroke-width="1.5" />
+            <path d={chartFillPath} fill="url(#gradient)" opacity="0.1" />
             <defs>
               <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stop-color="#F05139" />
@@ -276,44 +296,50 @@
     </div>
 
     <div class="card p-6 mb-10">
-      <div class="metrics-grid">
-        <div class="metric-card shadow-none border-gray">
-          <div class="metric-title">USERS</div>
-          <div class="metric-value">{metrics.googleAnalytics?.users?.value || 0}</div>
-          <div class="metric-trend {metrics.googleAnalytics?.users?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.users?.trend || '+0%'}</div>
+      {#if !metrics.googleAnalytics || Object.keys(metrics.googleAnalytics).length === 0}
+        <div class="text-center text-muted py-8">
+          <p>Google Analytics 4 is not configured or no data is available.</p>
         </div>
-        <div class="metric-card shadow-none border-gray">
-          <div class="metric-title">SESSIONS</div>
-          <div class="metric-value">{metrics.googleAnalytics?.sessions?.value || 0}</div>
-          <div class="metric-trend {metrics.googleAnalytics?.sessions?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.sessions?.trend || '+0%'}</div>
+      {:else}
+        <div class="metrics-grid">
+          <div class="metric-card shadow-none border-gray">
+            <div class="metric-title">USERS</div>
+            <div class="metric-value">{metrics.googleAnalytics?.users?.value || 0}</div>
+            <div class="metric-trend {metrics.googleAnalytics?.users?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.users?.trend || '+0%'}</div>
+          </div>
+          <div class="metric-card shadow-none border-gray">
+            <div class="metric-title">SESSIONS</div>
+            <div class="metric-value">{metrics.googleAnalytics?.sessions?.value || 0}</div>
+            <div class="metric-trend {metrics.googleAnalytics?.sessions?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.sessions?.trend || '+0%'}</div>
+          </div>
+          <div class="metric-card shadow-none border-gray">
+            <div class="metric-title">AVG SESSION TIME</div>
+            <div class="metric-value">{metrics.googleAnalytics?.avgSessionTime?.value || '0s'}</div>
+            <div class="metric-trend {metrics.googleAnalytics?.avgSessionTime?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.avgSessionTime?.trend || '+0%'}</div>
+          </div>
+          <div class="metric-card shadow-none border-gray">
+            <div class="metric-title">BOUNCE RATE</div>
+            <div class="metric-value">{metrics.googleAnalytics?.bounceRate?.value || '0%'}</div>
+            <div class="metric-trend {metrics.googleAnalytics?.bounceRate?.trend?.includes('-') ? 'positive' : 'negative'}">{metrics.googleAnalytics?.bounceRate?.trend || '+0%'}</div>
+          </div>
         </div>
-        <div class="metric-card shadow-none border-gray">
-          <div class="metric-title">AVG SESSION TIME</div>
-          <div class="metric-value">{metrics.googleAnalytics?.avgSessionTime?.value || '0s'}</div>
-          <div class="metric-trend {metrics.googleAnalytics?.avgSessionTime?.trend?.includes('-') ? 'negative' : 'positive'}">{metrics.googleAnalytics?.avgSessionTime?.trend || '+0%'}</div>
+        
+        <h4 class="text-sm font-bold text-dark mt-6 mb-4">Traffic Sources</h4>
+        <div class="flex align-center gap-10">
+          <svg viewBox="0 0 100 100" class="circular-chart small-circle">
+            <path fill="none" stroke="#F05139" stroke-width="15" stroke-dasharray="45 100" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+            <path fill="none" stroke="#3B82F6" stroke-width="15" stroke-dasharray="30 100" stroke-dashoffset="-45" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+            <path fill="none" stroke="#10B981" stroke-width="15" stroke-dasharray="15 100" stroke-dashoffset="-75" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+            <path fill="none" stroke="#8B5CF6" stroke-width="15" stroke-dasharray="10 100" stroke-dashoffset="-90" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
+          </svg>
+          <div class="traffic-legend">
+            <div class="tl-row"><span class="dot red"></span> <span class="text-sm text-dark">Organic Search (45%)</span></div>
+            <div class="tl-row"><span class="dot blue"></span> <span class="text-sm text-dark">Direct (30%)</span></div>
+            <div class="tl-row"><span class="dot green"></span> <span class="text-sm text-dark">Social (15%)</span></div>
+            <div class="tl-row"><span class="dot purple"></span> <span class="text-sm text-dark">Referral (10%)</span></div>
+          </div>
         </div>
-        <div class="metric-card shadow-none border-gray">
-          <div class="metric-title">BOUNCE RATE</div>
-          <div class="metric-value">{metrics.googleAnalytics?.bounceRate?.value || '0%'}</div>
-          <div class="metric-trend {metrics.googleAnalytics?.bounceRate?.trend?.includes('-') ? 'positive' : 'negative'}">{metrics.googleAnalytics?.bounceRate?.trend || '+0%'}</div>
-        </div>
-      </div>
-      
-      <h4 class="text-sm font-bold text-dark mt-6 mb-4">Traffic Sources</h4>
-      <div class="flex align-center gap-10">
-        <svg viewBox="0 0 100 100" class="circular-chart small-circle">
-          <path fill="none" stroke="#F05139" stroke-width="15" stroke-dasharray="45 100" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-          <path fill="none" stroke="#3B82F6" stroke-width="15" stroke-dasharray="30 100" stroke-dashoffset="-45" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-          <path fill="none" stroke="#10B981" stroke-width="15" stroke-dasharray="15 100" stroke-dashoffset="-75" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-          <path fill="none" stroke="#8B5CF6" stroke-width="15" stroke-dasharray="10 100" stroke-dashoffset="-90" d="M50 10 a 40 40 0 0 1 0 80 a 40 40 0 0 1 0 -80" />
-        </svg>
-        <div class="traffic-legend">
-          <div class="tl-row"><span class="dot red"></span> <span class="text-sm text-dark">Organic Search (45%)</span></div>
-          <div class="tl-row"><span class="dot blue"></span> <span class="text-sm text-dark">Direct (30%)</span></div>
-          <div class="tl-row"><span class="dot green"></span> <span class="text-sm text-dark">Social (15%)</span></div>
-          <div class="tl-row"><span class="dot purple"></span> <span class="text-sm text-dark">Referral (10%)</span></div>
-        </div>
-      </div>
+      {/if}
     </div>
 
     <!-- Meta & Search Console -->
@@ -322,20 +348,26 @@
       <h3>Meta Ads Campaign Performance</h3>
     </div>
     <div class="card mb-10">
-      <table class="data-table no-borders m-4">
-        <thead><tr><th>CAMPAIGN</th><th>SPEND</th><th>CLICKS</th><th>ROAS</th><th>CONVERSIONS</th></tr></thead>
-        <tbody>
-          {#each metrics.adPerformance || [] as ad}
-            <tr>
-              <td class="font-medium text-dark text-sm">{ad.campaign}</td>
-              <td class="text-dark text-sm">₹{ad.spend?.toLocaleString() || 0}</td>
-              <td class="text-dark text-sm">{ad.clicks?.toLocaleString() || 0}</td>
-              <td class="text-green font-bold text-sm">{ad.roas}x</td>
-              <td class="text-dark text-sm">{ad.conversions}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+      {#if !metrics.adPerformance || metrics.adPerformance.length === 0}
+        <div class="text-center text-muted py-8">
+          <p>Meta Ads integration is not configured or no data is available.</p>
+        </div>
+      {:else}
+        <table class="data-table no-borders m-4">
+          <thead><tr><th>CAMPAIGN</th><th>SPEND</th><th>CLICKS</th><th>ROAS</th><th>CONVERSIONS</th></tr></thead>
+          <tbody>
+            {#each metrics.adPerformance || [] as ad}
+              <tr>
+                <td class="font-medium text-dark text-sm">{ad.campaign}</td>
+                <td class="text-dark text-sm">₹{ad.spend?.toLocaleString() || 0}</td>
+                <td class="text-dark text-sm">{ad.clicks?.toLocaleString() || 0}</td>
+                <td class="text-green font-bold text-sm">{ad.roas}x</td>
+                <td class="text-dark text-sm">{ad.conversions}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
     </div>
 
     <div class="section-title">
@@ -343,19 +375,25 @@
       <h3>Google Search Console</h3>
     </div>
     <div class="card mb-10">
-      <table class="data-table no-borders m-4">
-        <thead><tr><th>TOP KEYWORDS</th><th>CLICKS</th><th>IMPRESSIONS</th><th>AVG. POSITION</th></tr></thead>
-        <tbody>
-          {#each metrics.searchConsole || [] as sc}
-            <tr>
-              <td class="font-medium text-dark text-sm">{sc.keyword}</td>
-              <td class="text-dark text-sm">{sc.clicks}</td>
-              <td class="text-dark text-sm">{sc.impressions}</td>
-              <td class="text-dark text-sm">{sc.pos}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+      {#if !metrics.searchConsole || metrics.searchConsole.length === 0}
+        <div class="text-center text-muted py-8">
+          <p>Google Search Console integration is not configured or no data is available.</p>
+        </div>
+      {:else}
+        <table class="data-table no-borders m-4">
+          <thead><tr><th>TOP KEYWORDS</th><th>CLICKS</th><th>IMPRESSIONS</th><th>AVG. POSITION</th></tr></thead>
+          <tbody>
+            {#each metrics.searchConsole || [] as sc}
+              <tr>
+                <td class="font-medium text-dark text-sm">{sc.keyword}</td>
+                <td class="text-dark text-sm">{sc.clicks}</td>
+                <td class="text-dark text-sm">{sc.impressions}</td>
+                <td class="text-dark text-sm">{sc.pos}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
     </div>
 
     <!-- COD vs Prepaid Split -->

@@ -4,7 +4,7 @@
   import { page } from '$app/stores';
   import { env } from '$env/dynamic/public';
   import { goto, invalidateAll } from '$app/navigation';
-  import { uploadToR2 } from '$lib/utils/upload';
+  import { uploadImage } from '$lib/utils/upload';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -38,7 +38,7 @@
       const file = input.files[0];
       
       try {
-        image = await uploadToR2(file);
+        image = await uploadImage(file);
       } catch (err) {
         console.error(err);
         alert("Failed to upload image. (If CORS isn't set on bucket yet, ignore and continue saving).");

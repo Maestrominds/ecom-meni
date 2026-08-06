@@ -164,8 +164,18 @@
   }
 
   function getProductThumbnail(prodId: string) {
-    const p = data.products?.find((x: any) => x.id === prodId);
-    return p ? p.img : '';
+    const p = data.products?.find((x: any) => x.id === prodId || x.ID === prodId);
+    if (!p) return '';
+    if (p.img) return p.img;
+    if (p.image_url) return p.image_url;
+    if (p.ImageUrl && p.ImageUrl.Valid) return p.ImageUrl.String;
+    if (p.ImageUrl && typeof p.ImageUrl === 'string') return p.ImageUrl;
+    return '';
+  }
+
+  function getLinkedProduct(prodId: string) {
+    if (!prodId) return null;
+    return data.products?.find((x: any) => x.id === prodId || x.ID === prodId) || null;
   }
 
   function getEmbedUrl(url: string, isMuted: boolean = true) {
@@ -317,10 +327,10 @@
     <div class="video-grid">
       {#each videos as video, idx}
         <div class="video-card" onclick={() => toggleVideoSound(idx)}>
-          {#if getEmbedUrl(video.videoUrl)}
+          {#if getEmbedUrl(video.videoUrl || video.VideoUrl)}
             <iframe 
-              src={getEmbedUrl(video.videoUrl, !video.isPlayingWithSound)} 
-              title={video.title}
+              src={getEmbedUrl(video.videoUrl || video.VideoUrl, !video.isPlayingWithSound)} 
+              title={video.title || video.Title}
               frameborder="0" 
               scrolling="no" 
               allowtransparency="true" 
@@ -329,7 +339,7 @@
             ></iframe>
           {:else}
             <video 
-              src={video.videoUrl} 
+              src={video.videoUrl || video.VideoUrl} 
               muted 
               playsinline 
               autoplay 
@@ -338,18 +348,30 @@
             ></video>
           {/if}
           
-          <div class="video-overlay-details" style="pointer-events: none;">
             <!-- Product Thumbnail link if present -->
-            {#if video.productId}
-              {@const thumb = getProductThumbnail(video.productId)}
-              {#if thumb}
-                <a href="/shop" class="video-product-link" style="pointer-events: auto;" onclick={(e) => e.stopPropagation()}>
-                  <img src={thumb} alt="Linked Product" class="video-product-thumb" />
-                </a>
-              {/if}
+            {#if video.productId || (video.ProductID && video.ProductID.Valid ? video.ProductID.String : video.ProductID)}
+              {@const currentProductId = video.productId || (video.ProductID && video.ProductID.Valid ? video.ProductID.String : video.ProductID)}
+              {@const thumb = getProductThumbnail(currentProductId)}
+              {@const linkedProduct = getLinkedProduct(currentProductId)}
+              
+              <a href="/product/{currentProductId}" class="video-overlay-details" style="pointer-events: auto; text-decoration: none;" onclick={(e) => e.stopPropagation()}>
+                {#if thumb}
+                  <div class="video-product-link">
+                    <img src={thumb} alt="Linked Product" class="video-product-thumb" />
+                  </div>
+                {/if}
+                <div class="video-text-content">
+                  <span class="video-title">{video.title || video.Title}</span>
+                  {#if linkedProduct}
+                    <span class="video-product-name">{linkedProduct.name || linkedProduct.Name}</span>
+                  {/if}
+                </div>
+              </a>
+            {:else}
+              <div class="video-overlay-details" style="pointer-events: none;">
+                <span class="video-title">{video.title || video.Title}</span>
+              </div>
             {/if}
-            <span class="video-title">{video.title}</span>
-          </div>
         </div>
       {/each}
     </div>
@@ -1015,35 +1037,51 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.2) 60%, transparent 100%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
     padding: 24px 16px 16px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    text-align: center;
+    text-align: left;
+    gap: 12px;
+  }
+  .video-text-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
   .video-title {
     color: white;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    margin-top: 8px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+    line-height: 1.2;
+  }
+  .video-product-name {
+    color: #ffd700; /* Gold/yellow for contrast */
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 4px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
   }
   .video-product-link {
-    display: inline-block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: white;
-    padding: 4px;
-    border-radius: 50%;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    padding: 2px;
+    border-radius: 8px; /* Square shape with rounded corners */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     transition: transform 0.2s;
+    flex-shrink: 0;
   }
   .video-product-link:hover {
     transform: scale(1.15);
   }
   .video-product-thumb {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    border-radius: 6px; /* Square inner shape */
     object-fit: cover;
     display: block;
   }

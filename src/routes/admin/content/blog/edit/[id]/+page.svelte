@@ -2,7 +2,7 @@
   import { ArrowLeft, Save, Image as ImageIcon } from 'lucide-svelte';
   import { env } from '$env/dynamic/public';
   import { goto } from '$app/navigation';
-  import { uploadToR2 } from '$lib/utils/upload';
+  import { uploadImage } from '$lib/utils/upload';
   import type { PageData } from './$types';
 
   let { data }: { data: PageData } = $props();
@@ -21,7 +21,7 @@
       const file = input.files[0];
       
       try {
-        imageUrl = await uploadToR2(file);
+        imageUrl = await uploadImage(file);
       } catch (err) {
         console.error(err);
         alert("Image upload failed, but you can still save text content.");

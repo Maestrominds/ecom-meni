@@ -3,21 +3,23 @@
   import { ArrowLeft, Plus, Trash2, Search, ChevronDown, Check, ChevronLeft, ChevronRight, UploadCloud } from 'lucide-svelte';
   import { goto } from '$app/navigation';
   import { env } from '$env/dynamic/public';
-  import { uploadToR2 } from '$lib/utils/upload';
+  import { uploadImage } from '$lib/utils/upload';
   import { api } from '$lib/data/mockApi';
 
   const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
 
   async function handleLocalImageUpload(e: Event, callback: (url: string) => void) {
     const input = e.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      try {
-        const public_url = await uploadToR2(file);
-        callback(public_url);
-      } catch(err) {
-        console.error("Upload failed, using local blob fallback", err);
-        callback(URL.createObjectURL(file));
+    if (input.files && input.files.length > 0) {
+      const files = Array.from(input.files);
+      for (const file of files) {
+        try {
+          const public_url = await uploadImage(file);
+          callback(public_url);
+        } catch(err) {
+          console.error("Upload failed, using local blob fallback", err);
+          callback(URL.createObjectURL(file));
+        }
       }
     }
   }
@@ -422,7 +424,7 @@
             <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
               <label class="btn-outline-small" style="padding: 10px 14px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; border: 2px dashed #E5E7EB;" class:opacity-50={galleryImages.length >= 5}>
                 <UploadCloud size={16} /> Upload File from Computer
-                <input type="file" accept="image/*" style="display: none;" disabled={galleryImages.length >= 5} onchange={(e) => handleLocalImageUpload(e, (url) => addGalleryImage(url))} />
+                <input type="file" multiple accept="image/*" style="display: none;" disabled={galleryImages.length >= 5} onchange={(e) => handleLocalImageUpload(e, (url) => addGalleryImage(url))} />
               </label>
             </div>
 

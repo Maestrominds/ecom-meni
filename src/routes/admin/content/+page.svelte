@@ -23,15 +23,16 @@
   
   // Ensure we always have exactly 4 video cards
   let defaultVideoCards = Array.from({ length: 4 }).map((_, i) => ({
-    title: '', videoUrl: '', productId: '', productName: '', searchQuery: '', showDropdown: false
+    id: '', title: '', videoUrl: '', productId: '', productName: '', searchQuery: '', showDropdown: false
   }));
   
   let videoCards = $state(
     data.videos && data.videos.length > 0
       ? data.videos.map((v: any) => ({
+          id: v.ID,
           title: v.Title || '',
           videoUrl: v.VideoUrl || '',
-          productId: v.ProductID?.Valid ? v.ProductID.String : '',
+          productId: (v.ProductID && typeof v.ProductID === 'object' && v.ProductID.Valid) ? v.ProductID.String : (typeof v.ProductID === 'string' ? v.ProductID : ''),
           productName: '',
           searchQuery: '',
           showDropdown: false
@@ -41,9 +42,20 @@
 
   onMount(async () => {
     try {
-      const res = await fetch(`${baseUrl}/public/products`);
-      if (res.ok) {
-        allProducts = await res.json();
+      const pRes = await fetch(`${baseUrl}/public/products`);
+      if (pRes.ok) {
+        allProducts = await pRes.json();
+        // Now that products are loaded, populate productName and searchQuery for video cards
+        videoCards = videoCards.map(v => {
+          if (v.productId) {
+            const p = allProducts.find(x => x.id === v.productId || x.ID === v.productId);
+            if (p) {
+              v.productName = p.name || p.Name || '';
+              v.searchQuery = v.productName;
+            }
+          }
+          return v;
+        });
       }
     } catch(e) {
       console.error('Error fetching products for dropdown:', e);
@@ -57,15 +69,20 @@
       // But for this UI, we will just add them.
       for (const video of videoCards) {
         if (!video.title || !video.videoUrl) continue;
-        await fetch(`${baseUrl}/admin/videos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const method = video.id ? 'PUT' : 'POST';
+        const url = video.id ? `${baseUrl}/admin/videos/${video.id}` : `${baseUrl}/admin/videos`;
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
           body: JSON.stringify({
             title: video.title,
             video_url: video.videoUrl,
             product_id: video.productId
           })
         });
+        if (!res.ok) {
+           throw new Error(`Failed to save video: ${res.statusText}`);
+        }
       }
       alert("Video Cards saved to the server successfully!");
     } catch(e) {
@@ -80,7 +97,7 @@
     try {
       const res = await fetch(`${baseUrl}/admin/content/announcement`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
         body: JSON.stringify({
           text: announcementText,
           link_url: announcementLink,
@@ -101,7 +118,7 @@
     try {
       const res = await fetch(`${baseUrl}/admin/content/reviews/${id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
         body: JSON.stringify({ status })
       });
       if (res.ok) {
@@ -121,7 +138,7 @@
     try {
       const res = await fetch(`${baseUrl}/admin/content/reviews/${id}/reply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
         body: JSON.stringify({ reply_text: reply })
       });
       if (res.ok) {
@@ -133,6 +150,48 @@
     }
   }
 
+  async function deleteReview(id: string) {
+    if (!confirm('Are you sure you want to delete this review?')) return;
+    try {
+      const res = await fetch(`${baseUrl}/admin/content/reviews/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` }
+      });
+      if (res.ok) {
+        reviews = reviews.filter((r: any) => r.ID !== id);
+      } else {
+        alert('Failed to delete review');
+      }
+    } catch (e) {
+      alert('Error deleting review');
+    }
+  }
+
+  async function uploadReviewsCSV(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const res = await fetch(`${baseUrl}/admin/content/reviews/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
+        body: formData
+      });
+      if (res.ok) {
+        alert('Reviews uploaded successfully!');
+        input.value = ''; // Reset
+      } else {
+        alert('Failed to upload reviews');
+      }
+    } catch (e) {
+      alert('Error uploading reviews');
+    }
+  }
+
   function editBlog(id: string) {
     window.location.href = `/admin/content/blog/edit/${id}`;
   }
@@ -141,7 +200,8 @@
     if (!confirm("Are you sure you want to delete this blog post?")) return;
     try {
       const res = await fetch(`${baseUrl}/admin/blogs/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` }
       });
       if (res.ok) {
         blogPosts = blogPosts.filter(b => b.ID !== id);
@@ -163,7 +223,7 @@
     try {
       const res = await fetch(`${baseUrl}/admin/content/social-links`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
         body: JSON.stringify({
           url: newSocialUrl
         })
@@ -184,7 +244,8 @@
     if (!confirm('Delete this social link?')) return;
     try {
       const res = await fetch(`${baseUrl}/admin/content/social-links/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` }
       });
       if (res.ok) {
         socialLinks = socialLinks.filter(l => l.ID !== id);
@@ -301,6 +362,8 @@
               <label>Video URL (Instagram / YouTube MP4)</label>
               <input type="text" bind:value={video.videoUrl} placeholder="https://instagram.com/reel/... or https://youtube.com/watch?v=..." />
             </div>
+            <!-- Temporarily hidden Link Product input -->
+            {#if false}
             <div class="form-group relative">
               <label>Link Product</label>
               <div class="product-search-wrapper">
@@ -308,30 +371,44 @@
                   type="text" 
                   placeholder="Type product name to search..." 
                   bind:value={video.searchQuery}
+                  oninput={() => {
+                    // Auto-match if they type the exact name
+                    const match = allProducts.find(p => (p.name || p.Name || '').toLowerCase() === (video.searchQuery || '').toLowerCase());
+                    if (match) {
+                      video.productId = match.id || match.ID;
+                      video.productName = match.name || match.Name;
+                    } else {
+                      video.productId = '';
+                      video.productName = '';
+                    }
+                  }}
                   onfocus={() => video.showDropdown = true}
                   onblur={() => setTimeout(() => video.showDropdown = false, 200)}
                 />
-                {#if video.showDropdown}
+                {#if video.showDropdown && !video.productId}
                   <div class="product-dropdown">
-                    {#each allProducts.filter(p => p.name.toLowerCase().includes((video.searchQuery || '').toLowerCase())) as prod}
+                    {#each allProducts.filter(p => (p.name || p.Name || '').toLowerCase().includes((video.searchQuery || '').toLowerCase())) as prod}
                       <button 
                         type="button" 
                         onmousedown={() => {
-                          video.productId = prod.id;
-                          video.productName = prod.name;
-                          video.searchQuery = prod.name;
+                          video.productId = prod.id || prod.ID;
+                          video.productName = prod.name || prod.Name;
+                          video.searchQuery = prod.name || prod.Name;
                         }}
                       >
-                        {prod.name}
+                        {prod.name || prod.Name}
                       </button>
                     {/each}
                   </div>
                 {/if}
               </div>
               {#if video.productId}
-                <div class="text-xs text-dark mt-2">Linked Product: <strong>{video.productName}</strong> ({video.productId})</div>
+                <div class="text-sm mt-2 text-primary font-medium">
+                  ✓ Linked Product: {video.productName || video.searchQuery}
+                </div>
               {/if}
             </div>
+            {/if}
           </div>
         {/each}
       </div>
@@ -350,7 +427,13 @@
           <label>Product Name</label>
           <button class="dropdown-btn w-full">Filter by product <ChevronDown size={16} /></button>
         </div>
-        <button class="btn-primary">Import from Excel</button>
+        <div class="flex gap-12">
+          <a href="/template.csv" download class="btn-outline-small text-decoration-none" style="display: flex; align-items: center; gap: 4px;"><UploadCloud size={14} /> Template</a>
+          <label class="btn-primary cursor-pointer mb-0">
+            Import from CSV
+            <input type="file" accept=".csv" class="hidden" style="display: none;" onchange={uploadReviewsCSV} />
+          </label>
+        </div>
       </div>
     </div>
     
@@ -386,6 +469,7 @@
             {#if review.Status !== 'REJECTED'}
               <button onclick={() => updateReviewStatus(review.ID, 'REJECTED')} class="btn-text-small text-muted">Reject</button>
             {/if}
+            <button onclick={() => deleteReview(review.ID)} class="btn-text-small text-red">Delete</button>
           </div>
         </div>
       {/each}

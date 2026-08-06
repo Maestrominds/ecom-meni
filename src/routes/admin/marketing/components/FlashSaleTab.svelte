@@ -1,7 +1,88 @@
 <script lang="ts">
   import { Tag, Truck, Clock, ChevronDown, Calendar } from 'lucide-svelte';
 
+  import { onMount, onDestroy } from 'svelte';
+
+  import { getApiUrl } from '$lib/utils/apiUrl';
+
   let { data = {} } = $props();
+  
+  let countdown = $state(data?.endsIn || 'N/A');
+  let timer: ReturnType<typeof setInterval>;
+
+  let allProducts = $state<any[]>([]);
+  let selectedProductId = $state('');
+  let selectedProductName = $state('');
+  let searchQuery = $state('');
+  let showDropdown = $state(false);
+  let salePrice = $state(399);
+  let endTime = $state('');
+
+  onMount(async () => {
+    // Fetch products for the dropdown
+    try {
+      const pRes = await fetch(`${getApiUrl()}/public/products`);
+      if (pRes.ok) {
+        allProducts = await pRes.json();
+      }
+    } catch (e) {
+      console.error("Failed to load products", e);
+    }
+
+    // If backend provides raw ISO date, parse it
+    if (data?.end_time) {
+      const endTimeDate = new Date(data.end_time).getTime();
+      timer = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = endTimeDate - now;
+        if (distance < 0) {
+          countdown = 'EXPIRED';
+          clearInterval(timer);
+          return;
+        }
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        countdown = `${days.toString().padStart(2, '0')}d ${hours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+      }, 1000);
+    }
+  });
+
+  async function scheduleFlashSale() {
+    if (!selectedProductId) {
+      alert("Please select a product!");
+      return;
+    }
+    try {
+      // NOTE: The backend endpoint POST /admin/flash-sales does not exist yet!
+      // This will return 404 until the backend developer creates the API.
+      const res = await fetch(`${getApiUrl()}/admin/flash-sales`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}`
+        },
+        body: JSON.stringify({
+          product_id: selectedProductId,
+          sale_price: salePrice,
+          end_time: endTime ? new Date(endTime).toISOString() : null
+        })
+      });
+      if (res.ok) {
+        alert("Flash sale scheduled successfully!");
+      } else {
+        alert("Server is not ready! (Backend needs POST /admin/flash-sales)");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Server is not ready! (Backend needs POST /admin/flash-sales)");
+    }
+  }
+
+  onDestroy(() => {
+    if (timer) clearInterval(timer);
+  });
 </script>
 
 <!-- Metrics Cards -->
@@ -16,7 +97,7 @@
   </div>
   <div class="metric-card">
     <div class="metric-title"><Clock size={16} class="text-primary" /> FLASH SALE ENDS</div>
-    <div class="metric-value">{data?.endsIn || 'N/A'}</div>
+    <div class="metric-value">{countdown}</div>
   </div>
 </div>
 
@@ -28,29 +109,62 @@
     </div>
     
     <div class="form-body p-6 pt-0">
-      <div class="form-group mb-6">
+      <div class="form-group mb-6 relative">
         <label>PRODUCT</label>
-        <div class="input-wrapper relative">
-          <input type="text" value="Hair Fall Control Oil" readonly class="cursor-pointer bg-light" />
-          <ChevronDown size={16} class="input-icon text-muted" />
+        <div class="input-wrapper relative" style="display: flex; align-items: center; border: 1px solid #E5E7EB; border-radius: 8px; padding: 0 12px; background: white;">
+          <input 
+            type="text" 
+            placeholder="Search products..." 
+            bind:value={searchQuery}
+            oninput={(e) => {
+              if (selectedProductId && e.currentTarget.value !== selectedProductName) {
+                selectedProductId = '';
+                selectedProductName = '';
+              }
+            }}
+            onfocus={() => showDropdown = true}
+            onblur={() => setTimeout(() => showDropdown = false, 200)}
+            style="width: 100%; border: none; padding: 12px 0; outline: none; background: transparent;"
+          />
+          <ChevronDown size={16} class="text-muted" style="pointer-events: none;" />
         </div>
+        {#if showDropdown && !selectedProductId}
+          <div class="product-dropdown">
+            {#each allProducts.filter(p => (p.name || p.Name || '').toLowerCase().includes(searchQuery.toLowerCase())) as prod}
+              <button 
+                type="button" 
+                onmousedown={() => {
+                  selectedProductId = prod.id || prod.ID;
+                  selectedProductName = prod.name || prod.Name;
+                  searchQuery = prod.name || prod.Name;
+                }}
+              >
+                {prod.name || prod.Name}
+              </button>
+            {/each}
+          </div>
+        {/if}
+        {#if selectedProductId}
+          <div class="text-sm mt-2 text-primary font-medium">
+            ✓ Linked Product: {selectedProductName}
+          </div>
+        {/if}
       </div>
       
       <div class="form-row flex gap-24 mb-8">
         <div class="form-group flex-1">
           <label>SALE PRICE (₹)</label>
-          <input type="number" value="399" class="bg-light" />
+          <input type="number" bind:value={salePrice} class="bg-light" style="width: 100%; border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px; outline: none;" />
         </div>
         <div class="form-group flex-1">
           <label>ENDS AT</label>
-          <div class="input-wrapper relative">
-            <input type="text" value="12/31/2024, 11:59 PM" class="bg-light" />
-            <Calendar size={16} class="input-icon text-muted" />
+          <div class="input-wrapper relative" style="display: flex; align-items: center; border: 1px solid #E5E7EB; border-radius: 8px; padding: 0 12px; background: white;">
+            <input type="datetime-local" bind:value={endTime} style="width: 100%; border: none; padding: 12px 0; outline: none; background: transparent;" />
           </div>
         </div>
       </div>
       
-      <button class="btn-primary-large">Schedule flash sale</button>
+      <button class="btn-primary-large" onclick={scheduleFlashSale}>Schedule flash sale</button>
     </div>
   </div>
 </div>
@@ -156,5 +270,36 @@
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
+  }
+  .product-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .product-dropdown button {
+    width: 100%;
+    text-align: left;
+    padding: 10px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #111827;
+  }
+
+  .product-dropdown button:hover {
+    background: #f9fafb;
+    color: #F05139;
   }
 </style>

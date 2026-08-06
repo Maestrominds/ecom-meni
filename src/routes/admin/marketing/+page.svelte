@@ -14,7 +14,7 @@
   let { data } = $props();
 
   let activeTab = $state('COUPONS');
-  const tabs = ['COUPONS', 'FLASH SALE', 'REFERRAL', 'AFFILIATE', 'EMAIL CAMPAIGNS', 'AUTOMATION'];
+  const tabs = ['COUPONS', 'FLASH SALE', 'REFERRAL', 'AFFILIATE', 'EMAIL CAMPAIGNS'];
 </script>
 
 <svelte:head>

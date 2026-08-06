@@ -1,8 +1,15 @@
 import { getApiUrl } from '$lib/utils/apiUrl';
 
-export async function load({ fetch }) {
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ fetch, cookies }) => {
     try {
-        const res = await fetch(`${getApiUrl()}/admin/analytics/dashboard`);
+        const token = cookies.get('admin_token');
+        const res = await fetch(`${getApiUrl()}/admin/analytics/dashboard`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
         if (res.ok) {
             const data = await res.json();
             return {

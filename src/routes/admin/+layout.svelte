@@ -64,6 +64,11 @@
     }
   });
 
+  let hideHeader = $derived(
+    page.url.pathname.includes('/edit/') || 
+    page.url.pathname.endsWith('/new')
+  );
+
   async function handleLogout(e: Event) {
     e.preventDefault();
     try {
@@ -114,21 +119,7 @@
 
     <!-- Main Content Area -->
     <div class="main-wrapper">
-      <header class="top-header">
-        <div class="search-container">
-          <Search size={18} class="search-icon" />
-          <input type="text" placeholder="Search orders, products, customers..." />
-        </div>
-        <div class="header-actions">
-          <button class="icon-btn position-relative">
-            <Bell size={20} />
-            <span class="notification-dot"></span>
-          </button>
-          <button class="btn-primary-add">
-            + Add Product
-          </button>
-        </div>
-      </header>
+
 
       <main class="content">
         {@render children()}
