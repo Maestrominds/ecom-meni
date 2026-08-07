@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
   import { Megaphone, Zap, Mail, MousePointerClick, Image as ImageIcon, Sparkles, Send, LayoutTemplate } from 'lucide-svelte';
   import { env } from '$env/dynamic/public';
 
@@ -9,10 +11,116 @@
 
   let campaignName = $state('Summer Flash Sale 2024');
   let emailSubject = $state('Exclusive deals just for you! 🌟');
-  let emailBody = $state('Get ready for the hottest deals of the season. Exclusive discounts for our loyal subscribers only.');
   let buttonText = $state('SHOP NOW');
   let buttonUrl = $state('https://meni.com/shop');
   let headerImageUrl = $state('');
+  
+  let editorContainer: HTMLElement;
+  let quill: any;
+  let rawHtml = $state('<p>Get ready for the hottest deals of the season. Exclusive discounts for our loyal subscribers only.</p>');
+  let sending = $state(false);
+
+  onMount(async () => {
+    if (browser) {
+      const Quill = (await import('quill')).default;
+      quill = new Quill(editorContainer, {
+        theme: 'snow',
+        modules: {
+          toolbar: [
+            [{ 'header': [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+            ['link', 'image'],
+            ['clean']
+          ]
+        },
+        placeholder: 'Design your beautiful email here. Use {{user_name}} for dynamic tags...'
+      });
+      
+      // Set initial content
+      quill.root.innerHTML = rawHtml;
+      
+      quill.on('text-change', () => {
+        rawHtml = quill.root.innerHTML;
+      });
+    }
+  });
+
+  function generateEmailHTML(innerHtml: string) {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { font-family: Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 20px; }
+  .email-container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+  .hero-img { width: 100%; max-height: 250px; object-fit: cover; }
+  .content { padding: 32px; color: #374151; line-height: 1.6; }
+  .btn { display: inline-block; background-color: #F05139; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin-top: 24px; }
+  .footer { background-color: #111827; color: #9ca3af; padding: 24px; text-align: center; font-size: 12px; }
+  .footer a { color: #f3f4f6; text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="email-container">
+    ${headerImageUrl ? `<img src="${headerImageUrl}" class="hero-img" alt="Header Image" />` : ''}
+    <div class="content">
+      ${innerHtml}
+      ${buttonText && buttonUrl ? `<div style="text-align: center;"><a href="${buttonUrl}" class="btn">${buttonText}</a></div>` : ''}
+    </div>
+    <div class="footer">
+      <p>Meni Inc. • 123 Fashion Ave, New York, NY 10001</p>
+      <p>Follow us on <a href="https://instagram.com">Instagram</a> • <a href="https://twitter.com">Twitter</a></p>
+      <p>Don't want to receive these emails? <a href="https://meni.com/unsubscribe?user={{user_id}}">Unsubscribe here</a>.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  async function sendCampaign() {
+    if (!campaignName || !emailSubject || !rawHtml || rawHtml === '<p><br></p>') {
+      alert("Please fill in the campaign name, subject, and body.");
+      return;
+    }
+    
+    sending = true;
+    const finalHtml = generateEmailHTML(rawHtml);
+    
+    try {
+      const res = await fetch('/api/admin/marketing/email-campaigns', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}`
+        },
+        body: JSON.stringify({
+          campaign_name: campaignName,
+          subject: emailSubject,
+          html_body: finalHtml
+        })
+      });
+      
+      if (res.ok) {
+        alert("Campaign sent successfully!");
+        campaignName = '';
+        emailSubject = '';
+        buttonText = '';
+        buttonUrl = '';
+        headerImageUrl = '';
+        quill.root.innerHTML = '';
+        rawHtml = '';
+      } else {
+        alert("Failed to send campaign");
+      }
+    } catch (e) {
+      alert("Error sending campaign");
+    } finally {
+      sending = false;
+    }
+  }
 
   // Pagination State
   let currentPage = $state(1);
@@ -20,6 +128,9 @@
   let totalPages = $derived(Math.ceil(recentCampaigns.length / itemsPerPage) || 1);
   let paginatedCampaigns = $derived(recentCampaigns.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage));
 </script>
+<svelte:head>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+</svelte:head>
 
 <div class="premium-container">
   
@@ -30,7 +141,9 @@
     </div>
     <div class="header-actions">
       <button class="btn-glass">Save Draft</button>
-      <button class="btn-primary"><Send size={16} /> Send Campaign</button>
+      <button class="btn-primary" onclick={sendCampaign} disabled={sending}>
+        {#if sending} Sending... {:else} <Send size={16} /> Send Campaign {/if}
+      </button>
     </div>
   </div>
 
@@ -105,7 +218,9 @@
 
         <div class="form-group mb-0">
           <label>Email Message</label>
-          <textarea rows="4" bind:value={emailBody} class="premium-input"></textarea>
+          <div class="quill-wrapper">
+            <div bind:this={editorContainer} class="premium-quill"></div>
+          </div>
         </div>
       </div>
 
@@ -151,7 +266,7 @@
                 </div>
               {/if}
               <h1 class="email-h1">{campaignName}</h1>
-              <p class="email-p">{emailBody}</p>
+              <div class="email-p">{@html rawHtml}</div>
               
               <button class="email-btn">{buttonText}</button>
             </div>
@@ -316,6 +431,13 @@
   }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .mb-0 { margin-bottom: 0; }
+  
+  /* Quill Overrides */
+  .quill-wrapper { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+  :global(.ql-toolbar) { border: none !important; border-bottom: 1px solid #e5e7eb !important; background: white; padding: 12px !important; }
+  :global(.ql-container) { border: none !important; font-family: 'Inter', system-ui, sans-serif !important; font-size: 15px !important; color: #111827; }
+  :global(.ql-editor) { min-height: 200px; padding: 16px; }
+  :global(.ql-editor:focus) { box-shadow: inset 0 0 0 2px rgba(240, 81, 57, 0.1); }
 
   /* Audience Stats */
   .audience-stats { display: flex; gap: 24px; margin-bottom: 20px; }

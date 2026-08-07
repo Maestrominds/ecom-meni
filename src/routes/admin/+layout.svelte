@@ -43,6 +43,7 @@
     { name: 'Finance', path: '/admin/finance', icon: CircleDollarSign },
     { name: 'Subscription', path: '/admin/subscription', icon: Rss },
     { name: 'Referrals', path: '/admin/referrals', icon: Megaphone },
+    { name: 'Templates', path: '/admin/templates', icon: LayoutDashboard },
     { name: 'Settings', path: '/admin/settings', icon: Settings }
   ];
 

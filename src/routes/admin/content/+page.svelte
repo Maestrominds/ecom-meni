@@ -167,7 +167,7 @@
     }
   }
 
-  async function uploadReviewsCSV(event: Event) {
+  async function uploadReviewsExcel(event: Event) {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
     const file = input.files[0];
@@ -189,6 +189,29 @@
       }
     } catch (e) {
       alert('Error uploading reviews');
+    }
+  }
+
+  async function downloadTemplate() {
+    try {
+      const res = await fetch(`${baseUrl}/admin/content/reviews/template`, {
+        headers: { 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)admin_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` }
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'reviews_template.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+      } else {
+        alert('Failed to download template');
+      }
+    } catch (e) {
+      alert('Error downloading template');
     }
   }
 
@@ -424,10 +447,10 @@
     <div class="p-6 border-bottom">
       <div class="flex justify-end">
         <div class="flex gap-12">
-          <a href="/template.csv" download class="btn-outline-small text-decoration-none" style="display: flex; align-items: center; gap: 4px;"><UploadCloud size={14} /> Template</a>
+          <button onclick={downloadTemplate} class="btn-outline-small" style="display: flex; align-items: center; gap: 4px; cursor: pointer; border: 1px solid #D1D5DB; background: white;"><UploadCloud size={14} /> Template</button>
           <label class="btn-primary cursor-pointer mb-0">
-            Import from CSV
-            <input type="file" accept=".csv" class="hidden" style="display: none;" onchange={uploadReviewsCSV} />
+            Import from Excel
+            <input type="file" accept=".xlsx" class="hidden" style="display: none;" onchange={uploadReviewsExcel} />
           </label>
         </div>
       </div>
