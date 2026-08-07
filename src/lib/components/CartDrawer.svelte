@@ -6,7 +6,28 @@
   let checkoutSuccess = $state(false);
   let isCheckingOut = $state(false);
   let useWallet = $state(false);
+  let couponCode = $state('');
+  let isApplyingCoupon = $state(false);
   const baseUrl = '/api';
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) {
+      alert("Please enter a coupon code.");
+      return;
+    }
+    isApplyingCoupon = true;
+    try {
+      // API call to validate coupon will go here
+      // const res = await fetch('/api/cart/apply-coupon', { method: 'POST', body: JSON.stringify({ code: couponCode }) });
+      await new Promise(r => setTimeout(r, 500)); // mock delay
+      localStorage.setItem('meni_referral_code', couponCode);
+      alert(`Coupon '${couponCode}' applied successfully! (Mock)`);
+    } catch (e) {
+      alert("Failed to apply coupon.");
+    } finally {
+      isApplyingCoupon = false;
+    }
+  }
 
   async function handleCheckout() {
     if (store.cartItems.length === 0) return;
@@ -160,6 +181,26 @@
         </div>
 
         <div class="drawer-footer">
+          <!-- Coupon Code Section -->
+          <div class="coupon-section" style="margin-bottom: 16px;">
+            <div style="display: flex; gap: 8px;">
+              <input 
+                type="text" 
+                bind:value={couponCode} 
+                placeholder="Discount or Referral Code" 
+                style="flex: 1; padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; outline: none;" 
+              />
+              <button 
+                class="btn-apply-coupon" 
+                onclick={applyCoupon} 
+                disabled={isApplyingCoupon || !couponCode}
+                style="padding: 0 16px; background: #111827; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
+              >
+                {isApplyingCoupon ? '...' : 'Apply'}
+              </button>
+            </div>
+          </div>
+
           <div class="wallet-option" style="margin-bottom: 16px; padding: 12px; background: #f0f7f0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
             <div>
               <span style="font-weight: 600; color: #2e7d32;">Pay with Coin Box</span>

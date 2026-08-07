@@ -3,8 +3,8 @@
 
   // Mock data until API is fully wired
   let influencers = $state([
-    { id: 1, name: 'BeautyByJane', code: 'JANE10', commission: 50, cap: 500, earned: 150, uses: 3, bank: 'jane@upi' },
-    { id: 2, name: 'VlogMaster', code: 'VLOG15', commission: 100, cap: 1000, earned: 1000, uses: 10, bank: 'vlog@upi' }
+    { id: 1, name: 'BeautyByJane', code: 'JANE10', commission: 50, max_uses: 100, earned: 150, uses: 3, bank: 'jane@upi' },
+    { id: 2, name: 'VlogMaster', code: 'VLOG15', commission: 100, max_uses: 100, earned: 1000, uses: 10, bank: 'vlog@upi' }
   ]);
 
   let pendingCommissions = $state([
@@ -31,6 +31,40 @@
       isSettling = false;
     }
   }
+
+  let showAddModal = $state(false);
+  let newInfUser = $state('');
+  let newInfComm = $state(50);
+  let newInfMaxUses = $state(100);
+  let newInfBank = $state('');
+  let newInfUpi = $state('');
+
+  function handleAddInfluencer() {
+    if (!newInfUser) {
+      alert("Please provide a User Email/ID.");
+      return;
+    }
+    
+    // Generate a mock code
+    const mockCode = 'REF-' + Math.floor(Math.random()*10000);
+    
+    influencers = [...influencers, {
+      id: Date.now(),
+      name: newInfUser,
+      code: mockCode,
+      commission: newInfComm,
+      max_uses: newInfMaxUses,
+      earned: 0,
+      uses: 0,
+      bank: newInfBank || newInfUpi
+    }];
+    
+    alert("Influencer added locally! (Waiting for backend API to save permanently)");
+    showAddModal = false;
+    newInfUser = '';
+    newInfBank = '';
+    newInfUpi = '';
+  }
 </script>
 
 <svelte:head>
@@ -42,7 +76,7 @@
     <h1>Referral & Affiliate System</h1>
     <p>Manage influencers, set commission caps, and settle payouts.</p>
   </div>
-  <button class="btn btn-primary">
+  <button class="btn btn-primary" onclick={() => showAddModal = true}>
     <Users size={18} />
     <span>Add Influencer</span>
   </button>
@@ -95,7 +129,7 @@
           <tr>
             <th>Name</th>
             <th>Coupon Code</th>
-            <th>Commission / Cap</th>
+            <th>Commission / Max Uses</th>
             <th>Earned (Uses)</th>
             <th>Bank/UPI</th>
             <th>Actions</th>
@@ -106,10 +140,10 @@
             <tr>
               <td><strong>{inf.name}</strong></td>
               <td><span class="badge">{inf.code}</span></td>
-              <td>₹{inf.commission} / ₹{inf.cap} max</td>
+              <td>₹{inf.commission} / {inf.max_uses} uses</td>
               <td>
                 <div class="progress-bar">
-                  <div class="fill" style="width: {(inf.earned/inf.cap)*100}%"></div>
+                  <div class="fill" style="width: {(inf.uses/inf.max_uses)*100}%"></div>
                 </div>
                 <small>₹{inf.earned} ({inf.uses} uses)</small>
               </td>
@@ -164,6 +198,47 @@
     </div>
   </div>
 </div>
+
+{#if showAddModal}
+  <div class="modal-backdrop" onclick={() => showAddModal = false}>
+    <div class="modal" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">
+        <h2>Add New Influencer</h2>
+        <button class="close-btn" onclick={() => showAddModal = false}>&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Existing User Email or ID</label>
+          <input type="text" bind:value={newInfUser} placeholder="e.g. user@example.com" />
+          <small style="color: #6B7280; font-size: 11px;">Must be an existing registered user.</small>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Commission Amount (₹)</label>
+            <input type="number" bind:value={newInfComm} />
+          </div>
+          <div class="form-group">
+            <label>Max Uses (User Limit)</label>
+            <input type="number" bind:value={newInfMaxUses} />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Bank Account (Optional)</label>
+            <input type="text" bind:value={newInfBank} placeholder="e.g. Acc: 1234..." />
+          </div>
+          <div class="form-group">
+            <label>UPI ID (Optional)</label>
+            <input type="text" bind:value={newInfUpi} placeholder="e.g. user@upi" />
+          </div>
+        </div>
+        <button class="btn btn-primary w-full" style="margin-top: 16px; justify-content: center;" onclick={handleAddInfluencer}>
+          Create Influencer
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .dashboard-header {
@@ -247,6 +322,90 @@
     font-size: 0.9rem;
     margin-bottom: 4px;
   }
+
+  /* Modal Styles */
+  .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal {
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .modal-header h2 {
+    font-size: 1.2rem;
+    margin: 0;
+  }
+
+  .close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
+
+  .modal-body {
+    padding: 24px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 16px;
+  }
+
+  .form-row .form-group {
+    flex: 1;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text-dark);
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+  }
+
+  .form-group input:focus {
+    border-color: var(--primary);
+  }
+
+  .w-full { width: 100%; }
 
   .metric-info h3 {
     font-size: 1.5rem;

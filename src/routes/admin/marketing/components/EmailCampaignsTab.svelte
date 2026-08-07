@@ -59,8 +59,8 @@
   .hero-img { width: 100%; max-height: 250px; object-fit: cover; }
   .content { padding: 32px; color: #374151; line-height: 1.6; }
   .btn { display: inline-block; background-color: #F05139; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: bold; margin-top: 24px; }
-  .footer { background-color: #111827; color: #9ca3af; padding: 24px; text-align: center; font-size: 12px; }
-  .footer a { color: #f3f4f6; text-decoration: underline; }
+  .footer { background-color: #F05139; color: #ffffff; padding: 24px; text-align: center; font-size: 12px; }
+  .footer a { color: #ffffff; text-decoration: underline; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -259,16 +259,23 @@
             
             <div class="env-content">
               {#if headerImageUrl}
-                <div class="hero-image" style="background-image: url({headerImageUrl}); background-size: cover; background-position: center;"></div>
-              {:else}
-                <div class="hero-image flex-center">
-                  <ImageIcon size={40} class="text-white opacity-50" />
+                <div class="email-hero-img-container">
+                  <img src={headerImageUrl} alt="Campaign Header" class="email-hero-img" />
                 </div>
               {/if}
               <h1 class="email-h1">{campaignName}</h1>
               <div class="email-p">{@html rawHtml}</div>
               
-              <button class="email-btn">{buttonText}</button>
+              {#if buttonText}
+                <div style="text-align: center;">
+                  <button class="email-btn">{buttonText}</button>
+                </div>
+              {/if}
+            </div>
+            <div class="env-footer">
+              <p>Meni Inc. • 123 Fashion Ave, New York, NY 10001</p>
+              <p>Follow us on <a href="#">Instagram</a> • <a href="#">Twitter</a></p>
+              <p>Don't want to receive these emails? <a href="#">Unsubscribe here</a>.</p>
             </div>
           </div>
         </div>
@@ -477,17 +484,17 @@
   .env-subject { font-size: 18px; font-weight: 700; color: #111827; margin-top: 4px; }
   
   .env-content { padding: 24px; }
-  .hero-image { width: 100%; height: 200px; border-radius: 12px; background: linear-gradient(135deg, #F05139 0%, #ff8a7a 100%); margin-bottom: 24px; }
-  .flex-center { display: flex; align-items: center; justify-content: center; }
-  .opacity-50 { opacity: 0.5; }
+  .email-h1 { font-size: 24px; font-weight: 800; color: #111827; margin: 0 0 16px 0; }
+  .email-p { font-size: 15px; line-height: 1.6; color: #4b5563; margin: 0 0 24px 0; }
+  .email-btn { background: #F05139; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+  .email-btn:hover { background: #d9432d; }
+  .email-hero-img-container { margin: -24px -24px 24px -24px; }
+  .email-hero-img { width: 100%; max-height: 200px; object-fit: cover; }
   
-  .email-h1 { font-size: 24px; font-weight: 800; color: #111827; margin: 0 0 12px 0; text-align: center; }
-  .email-p { font-size: 15px; line-height: 1.6; color: #4b5563; text-align: center; margin: 0 0 24px 0; }
-  
-  .product-cards { display: flex; gap: 16px; margin-bottom: 24px; }
-  .p-card { flex: 1; background: #f9fafb; border-radius: 8px; padding: 12px; border: 1px solid #f3f4f6; }
-  .p-img { height: 100px; background: #e5e7eb; border-radius: 6px; margin-bottom: 12px; }
-  .p-line { height: 8px; background: #d1d5db; border-radius: 4px; width: 60%; margin: 0 auto; }
+  .env-footer { background-color: #F05139; color: #ffffff; padding: 24px; text-align: center; font-size: 12px; }
+  .env-footer a { color: #ffffff; text-decoration: underline; font-weight: 600; }
+  .env-footer p { margin: 0 0 8px 0; }
+  .env-footer p:last-child { margin: 0; }
   
   .email-btn { width: 100%; padding: 14px; background: #111827; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; transition: background 0.2s; }
   .email-btn:hover { background: #374151; }

@@ -3,6 +3,55 @@
 
   let { data = {} } = $props();
   let coupons = $derived(data?.list || []);
+  
+  let newCode = $state('');
+  let discountType = $state('percent');
+  let discountValue = $state<number>(0);
+  let minOrder = $state<number>(0);
+  let maxUses = $state<number>(100);
+  let creating = $state(false);
+
+  async function createCoupon() {
+    if (!newCode || discountValue <= 0) {
+      alert("Please enter a valid code and discount value.");
+      return;
+    }
+    
+    creating = true;
+    try {
+      const res = await fetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\\s*)admin_token\\s*\\=\\s*([^;]*).*$)|^.*$/, "$1")}`
+        },
+        body: JSON.stringify({
+          code: newCode.toUpperCase(),
+          discount_type: discountType,
+          discount_amount: discountValue,
+          min_order_value: minOrder,
+          max_uses: maxUses,
+          valid_from: new Date().toISOString(),
+          // Default expiry 30 days from now
+          expiry_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        })
+      });
+      
+      if (res.ok) {
+        alert("Coupon created successfully! Please refresh to see it in the list.");
+        newCode = '';
+        discountValue = 0;
+      } else {
+        const err = await res.json();
+        alert(`Failed to create coupon: ${err.error || 'Unknown error'}`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("An error occurred while creating the coupon.");
+    } finally {
+      creating = false;
+    }
+  }
 </script>
 
 <!-- Metrics Cards -->
@@ -68,23 +117,25 @@
       <div class="form-body pt-4">
         <div class="form-group">
           <label>COUPON CODE</label>
-          <input type="text" placeholder="e.g. DIWALI50" style="text-transform: uppercase;" />
+          <input type="text" bind:value={newCode} placeholder="e.g. DIWALI50" style="text-transform: uppercase;" />
         </div>
         <div class="form-row flex gap-16">
           <div class="form-group half">
             <label>DISCOUNT TYPE</label>
-            <select>
-              <option>Percentage (%)</option>
-              <option>Flat Amount (₹)</option>
-              <option>Free Shipping</option>
+            <select bind:value={discountType}>
+              <option value="percent">Percentage (%)</option>
+              <option value="flat">Flat Amount (₹)</option>
+              <option value="shipping">Free Shipping</option>
             </select>
           </div>
           <div class="form-group half">
             <label>VALUE</label>
-            <input type="number" placeholder="50" />
+            <input type="number" bind:value={discountValue} placeholder="50" />
           </div>
         </div>
-        <button class="btn-save w-full">Create code</button>
+        <button class="btn-save w-full" onclick={createCoupon} disabled={creating}>
+          {creating ? 'Creating...' : 'Create code'}
+        </button>
       </div>
     </div>
 
@@ -117,7 +168,9 @@
         </div>
       </div>
       
-      <button class="btn-save w-full">Save rule</button>
+      <button class="btn-save w-full" onclick={() => alert("Automatic discounts are not yet supported by the backend! (Added to TODO list)")}>
+          Set automatic discount
+        </button>
     </div>
     </div>
   </div>

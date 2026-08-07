@@ -18,15 +18,20 @@
   let salePrice = $state(399);
   let endTime = $state('');
 
+  let flashSales = $derived(data?.flashSale?.list || []);
+
   onMount(async () => {
     // Fetch products for the dropdown
     try {
       const pRes = await fetch(`/api/public/products`);
       if (pRes.ok) {
         allProducts = await pRes.json();
+      } else {
+        alert("Failed to load products from server.");
       }
     } catch (e) {
       console.error("Failed to load products", e);
+      alert("Error loading products.");
     }
 
     // If backend provides raw ISO date, parse it
@@ -70,13 +75,17 @@
         })
       });
       if (res.ok) {
-        alert("Flash sale scheduled successfully!");
+        alert("Flash sale scheduled successfully! Please refresh the page to see the updated countdown.");
+        selectedProductId = '';
+        selectedProductName = '';
+        searchQuery = '';
       } else {
-        alert("Server is not ready! (Backend needs POST /admin/flash-sales)");
+        const err = await res.json();
+        alert(`Failed to schedule flash sale: ${err.error || 'Unknown error'}`);
       }
     } catch (e) {
       console.error(e);
-      alert("Server is not ready! (Backend needs POST /admin/flash-sales)");
+      alert("An error occurred while scheduling the flash sale.");
     }
   }
 
@@ -130,18 +139,24 @@
         </div>
         {#if showDropdown && !selectedProductId}
           <div class="product-dropdown">
-            {#each allProducts.filter(p => (p.name || p.Name || '').toLowerCase().includes(searchQuery.toLowerCase())) as prod}
-              <button 
-                type="button" 
-                onmousedown={() => {
-                  selectedProductId = prod.id || prod.ID;
-                  selectedProductName = prod.name || prod.Name;
-                  searchQuery = prod.name || prod.Name;
-                }}
-              >
-                {prod.name || prod.Name}
-              </button>
-            {/each}
+            {#if allProducts.length === 0}
+              <div class="p-3 text-muted text-sm text-center">Loading or no products...</div>
+            {:else}
+              {#each allProducts.filter(p => (p.name || p.Name || '').toLowerCase().includes(searchQuery.toLowerCase())) as prod}
+                <button 
+                  type="button" 
+                  onmousedown={() => {
+                    selectedProductId = prod.id || prod.ID;
+                    selectedProductName = prod.name || prod.Name;
+                    searchQuery = prod.name || prod.Name;
+                  }}
+                >
+                  {prod.name || prod.Name}
+                </button>
+              {:else}
+                <div class="p-3 text-muted text-sm text-center">No matching products found.</div>
+              {/each}
+            {/if}
           </div>
         {/if}
         {#if selectedProductId}
@@ -166,6 +181,55 @@
       
       <button class="btn-primary-large" onclick={scheduleFlashSale}>Schedule flash sale</button>
     </div>
+  </div>
+</div>
+
+<!-- Active Flash Sales Table -->
+<div class="card mt-8">
+  <div class="card-header border-bottom">
+    <h3>Active & Upcoming Flash Sales</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>PRODUCT</th>
+          <th>SALE PRICE</th>
+          <th>ENDS AT</th>
+          <th>STATUS</th>
+          <th>ACTIONS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#if flashSales.length > 0}
+          {#each flashSales as fs}
+            <tr>
+              <td>
+                <div class="font-medium text-dark">{fs.product_name || 'Product ' + fs.product_id.substring(0,6)}</div>
+              </td>
+              <td>₹{fs.sale_price}</td>
+              <td>{new Date(fs.end_time).toLocaleString()}</td>
+              <td>
+                {#if new Date(fs.end_time) > new Date()}
+                  <span class="badge-green-light">Active</span>
+                {:else}
+                  <span class="badge-gray">Expired</span>
+                {/if}
+              </td>
+              <td>
+                <button class="btn-text text-primary font-medium cursor-pointer" onclick={() => alert('Delete Flash Sale API coming soon!')}>Delete</button>
+              </td>
+            </tr>
+          {/each}
+        {:else}
+          <tr>
+            <td colspan="5" class="text-center text-muted" style="padding: 32px 0;">
+              No flash sales found. (Waiting for Backend API update)
+            </td>
+          </tr>
+        {/if}
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -302,4 +366,19 @@
     background: #f9fafb;
     color: #F05139;
   }
+
+  .mt-8 { margin-top: 32px; }
+  .table-responsive { overflow-x: auto; }
+  .data-table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+  .data-table th, .data-table td { padding: 24px; border-bottom: 1px solid #F3F4F6; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table th { color: #6B7280; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  .badge-gray { background: #E5E7EB; color: #111827; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; }
+  .badge-green-light { background: #ECFDF5; color: #059669; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+
+  .font-medium { font-weight: 500; }
+  .text-dark { color: #111827; }
+  .text-center { text-align: center; }
+  .btn-text { background: transparent; border: none; outline: none; }
 </style>

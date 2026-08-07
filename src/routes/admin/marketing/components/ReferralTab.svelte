@@ -1,5 +1,20 @@
 <script lang="ts">
   let { data = {} } = $props();
+  
+  let isEnabling = $state(false);
+  
+  async function handleEnableReferral() {
+    isEnabling = true;
+    try {
+      // Mock API call to save global referral limits
+      await new Promise(r => setTimeout(r, 600));
+      alert("Referral settings updated locally! (Waiting for backend API to save permanently)");
+    } catch (e) {
+      alert("Failed to update referral settings.");
+    } finally {
+      isEnabling = false;
+    }
+  }
 </script>
 
 <!-- Metrics Cards -->
@@ -29,12 +44,19 @@
     </div>
     
     <div class="form-body p-6">
+      <div class="form-group mb-6">
+        <label>EARN / PER REFERRAL (₹)</label>
+        <input type="number" value="{data?.rewardAmount || 100}" class="bg-light" style="width: 100%; border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px; outline: none; margin-top: 4px;" />
+      </div>
+
       <div class="form-group mb-8">
-        <label>AMOUNT</label>
-        <input type="text" value="₹{data?.rewardAmount || 100}" class="bg-light" />
+        <label>USER REFER LIMIT (MAX REFERRALS)</label>
+        <input type="number" value="{data?.referLimit || 5}" class="bg-light" style="width: 100%; border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px; outline: none; margin-top: 4px;" />
       </div>
       
-      <button class="btn-primary w-full justify-center">Enable Referral</button>
+      <button class="btn-primary w-full justify-center" onclick={handleEnableReferral} disabled={isEnabling}>
+        {isEnabling ? 'Saving...' : 'Enable Referral'}
+      </button>
     </div>
   </div>
 

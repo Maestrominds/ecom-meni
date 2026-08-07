@@ -53,8 +53,8 @@
   body { font-family: Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 20px; }
   .email-container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
   .content { padding: 32px; color: #374151; line-height: 1.6; }
-  .footer { background-color: #111827; color: #9ca3af; padding: 24px; text-align: center; font-size: 12px; }
-  .footer a { color: #f3f4f6; text-decoration: underline; }
+  .footer { background-color: #F05139; color: #ffffff; padding: 24px; text-align: center; font-size: 12px; }
+  .footer a { color: #ffffff; text-decoration: underline; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -246,6 +246,11 @@
               <div class="env-content">
                 <div class="email-p">{@html rawHtml}</div>
               </div>
+              
+              <div class="env-footer">
+                <p>Meni Inc. • 123 Fashion Ave, New York, NY 10001</p>
+                <p>This is a transactional email. <a href="#">Contact Support</a></p>
+              </div>
             </div>
           </div>
         </div>
@@ -418,6 +423,11 @@
   .env-content { padding: 24px; }
   
   .email-p { font-size: 15px; line-height: 1.6; color: #4b5563; margin: 0 0 24px 0; }
+  
+  .env-footer { background-color: #F05139; color: #ffffff; padding: 24px; text-align: center; font-size: 12px; }
+  .env-footer a { color: #ffffff; text-decoration: underline; font-weight: 600; }
+  .env-footer p { margin: 0 0 8px 0; }
+  .env-footer p:last-child { margin: 0; }
   
   /* Table Styles */
   .mb-4 { margin-bottom: 16px; }
