@@ -76,6 +76,7 @@
                 id="password" 
                 placeholder="••••••••"
                 required
+                autocomplete="current-password"
               />
             </div>
             <div class="forgot-password">

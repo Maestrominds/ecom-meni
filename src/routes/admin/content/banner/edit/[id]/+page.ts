@@ -3,7 +3,7 @@ import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params, fetch }) => {
     const bannerId = params.id;
-    const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+    const baseUrl = '/api';
 
     // If 'new', we return an empty template
     if (bannerId === 'new') {

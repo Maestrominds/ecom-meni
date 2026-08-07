@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/public';
 
-const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+const baseUrl = '/api';
 
 export async function uploadImage(file: File): Promise<string> {
   // 1. Get the upload signature from our backend

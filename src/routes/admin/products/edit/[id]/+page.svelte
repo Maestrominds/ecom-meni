@@ -7,7 +7,7 @@
   import { uploadImage } from '$lib/utils/upload';
   import { api } from '$lib/data/mockApi';
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = '/api';
   const productId = $derived(page.params.id);
 
   let currentTab = $state('general');
@@ -297,12 +297,11 @@
         alert("Product updated successfully!");
         goto('/admin/products');
       } else {
-        alert("Success! Form payload structured perfectly:\n" + JSON.stringify(detailTabsPayload, null, 2));
-        goto('/admin/products');
+        const errData = await res.json().catch(() => ({}));
+        alert("Failed to update product: " + (errData.error || res.statusText));
       }
-    } catch (e) {
-      alert("Saved locally! Structured template data:\n" + JSON.stringify(detailTabsPayload, null, 2));
-      goto('/admin/products');
+    } catch (e: any) {
+      alert("Network error while saving product: " + e.message);
     } finally {
       isSaving = false;
     }

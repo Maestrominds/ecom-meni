@@ -7,7 +7,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = '/api';
 
   // State variables initialized from data
   let banners = $state(data.banners || []);
@@ -422,11 +422,7 @@
       <h3>Review moderation</h3>
     </div>
     <div class="p-6 border-bottom">
-      <div class="flex-between align-end">
-        <div class="form-group mb-0 flex-1 max-w-sm">
-          <label>Product Name</label>
-          <button class="dropdown-btn w-full">Filter by product <ChevronDown size={16} /></button>
-        </div>
+      <div class="flex justify-end">
         <div class="flex gap-12">
           <a href="/template.csv" download class="btn-outline-small text-decoration-none" style="display: flex; align-items: center; gap: 4px;"><UploadCloud size={14} /> Template</a>
           <label class="btn-primary cursor-pointer mb-0">
@@ -438,10 +434,10 @@
     </div>
     
     <div class="review-list">
-      {#if reviews.length === 0}
+      {#if (reviews || []).length === 0}
         <div class="p-6 text-muted text-sm text-center">No reviews pending moderation.</div>
       {/if}
-      {#each reviews as review}
+      {#each (reviews || []).sort((a, b) => new Date(b.CreatedAt || 0).getTime() - new Date(a.CreatedAt || 0).getTime()).slice(0, 5) as review}
         <div class="review-item border-bottom p-6">
           <div class="flex-between mb-2">
             <div>
@@ -473,6 +469,9 @@
           </div>
         </div>
       {/each}
+      <div class="p-6 text-center border-top">
+        <a href="/admin/reviews" class="btn-outline-small text-decoration-none inline-block">View All Reviews ({(reviews || []).length})</a>
+      </div>
     </div>
   </div>
 

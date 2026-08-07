@@ -7,7 +7,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = '/api';
 
   let title = $state(data.blog?.Title || '');
   let content = $state(data.blog?.Body || '');

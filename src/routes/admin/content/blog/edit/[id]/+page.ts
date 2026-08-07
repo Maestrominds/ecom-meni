@@ -2,7 +2,7 @@ import { env } from '$env/dynamic/public';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ fetch, params }) => {
-    const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+    const baseUrl = '/api';
     
     try {
         const res = await fetch(`${baseUrl}/public/blogs`);

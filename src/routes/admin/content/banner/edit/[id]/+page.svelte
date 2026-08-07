@@ -9,7 +9,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = '/api';
   let bannerId = $page.params.id;
 
   // Form State

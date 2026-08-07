@@ -29,7 +29,7 @@
 
   onMount(async () => {
     try {
-      const res = await fetch(`${env.PUBLIC_API_URL || 'http://localhost:3000/api'}/public/products`);
+      const res = await fetch(`${'/api'}/public/products`);
       if (res.ok) {
         allProducts = await res.json();
       }

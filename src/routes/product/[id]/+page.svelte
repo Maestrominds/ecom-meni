@@ -1,9 +1,11 @@
 <script lang="ts">
-  import { Star, Truck, ShieldCheck, Heart, Share2, Plus, Minus, Check, ChevronLeft, ChevronRight } from 'lucide-svelte';
+  import { Star, Truck, ShieldCheck, Heart, Share2, Plus, Minus, Check, ChevronLeft, ChevronRight, MessageSquare, X } from 'lucide-svelte';
   import { store } from '$lib/store.svelte';
+  import { onMount } from 'svelte';
   
   let { data } = $props();
   let product = $derived(data.product);
+  let reviews = $derived(data.reviews || []);
   
   let quantity = $state(1);
   let isAdding = $state(false);
@@ -13,9 +15,54 @@
   let activeResultsSlide = $state(0);
   let selectedGalleryIdx = $state(0);
   
+  let showReviewBtn = $state(false);
+  let showReviewModal = $state(false);
+  let reviewRating = $state(0);
+  let reviewComment = $state('');
+  let isSubmittingReview = $state(false);
+  
   let allGalleryImages = $derived(product.detail_tabs?.gallery_images?.length > 0 ? product.detail_tabs.gallery_images : (product.image_url ? [product.image_url] : []));
   let currentDisplayImage = $derived(allGalleryImages[selectedGalleryIdx] || product.image_url || '');
   
+  onMount(() => {
+    const handleScroll = () => {
+      showReviewBtn = window.scrollY > 400;
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  });
+
+  function openReviewModal() {
+    if (!document.cookie.includes('user_token=')) {
+      window.location.href = '/login';
+      return;
+    }
+    showReviewModal = true;
+  }
+  
+  async function submitReview() {
+    if (reviewRating === 0) return alert("Please select a rating.");
+    isSubmittingReview = true;
+    try {
+      const res = await fetch('/api/customer/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${document.cookie.replace(/(?:(?:^|.*;\s*)user_token\s*\=\s*([^;]*).*$)|^.*$/, "$1")}` },
+        body: JSON.stringify({ product_id: product.id, rating: reviewRating, comment: reviewComment })
+      });
+      if (res.ok) {
+        alert("Review submitted successfully! It will appear once approved.");
+        showReviewModal = false;
+        reviewRating = 0;
+        reviewComment = '';
+      } else {
+        alert("Failed to submit review. Backend endpoint may not be ready.");
+      }
+    } catch(e) {
+      alert("Error submitting review.");
+    }
+    isSubmittingReview = false;
+  }
+
   function increaseQuantity() {
     if (quantity < product.stock) quantity++;
   }
@@ -357,7 +404,91 @@
       {/if}
     </div>
   </div>
-</div>
+
+  <!-- Customer Reviews Display -->
+  {#if reviews.length > 0}
+  <div class="customer-reviews-section">
+    <h2 class="section-title text-center mb-8">Customer Reviews</h2>
+    <div class="reviews-list">
+      {#each reviews as review}
+        <div class="review-card">
+          <div class="review-header flex-between mb-4">
+            <div class="reviewer-info">
+              <span class="reviewer-name font-bold">{review.user_name || 'Verified Buyer'}</span>
+              <span class="review-date text-xs text-muted">{new Date(review.created_at).toLocaleDateString()}</span>
+            </div>
+            <div class="flex text-yellow gap-1">
+              {#each Array(5) as _, i}
+                <Star size={14} fill={i < review.rating ? "currentColor" : "none"} strokeWidth={i < review.rating ? 0 : 1} class={i >= review.rating ? "text-gray-300" : ""} />
+              {/each}
+            </div>
+          </div>
+          <p class="review-body text-sm text-dark">{review.comment}</p>
+          {#if review.reply_text}
+            <div class="review-reply bg-gray-50 p-4 mt-4 rounded-md">
+              <span class="font-bold text-xs uppercase text-primary block mb-1">Response from MENI</span>
+              <p class="text-sm text-dark">{review.reply_text}</p>
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  </div>
+  {/if}
+</div><!-- End product-page -->
+
+<!-- Floating Review Button -->
+{#if showReviewBtn}
+  <button class="floating-review-btn" onclick={openReviewModal} aria-label="Write a Review">
+    <MessageSquare size={24} />
+  </button>
+{/if}
+
+<!-- Review Modal -->
+{#if showReviewModal}
+  <div class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header flex-between border-bottom p-4">
+        <h3 class="font-bold m-0">Write a Review</h3>
+        <button class="btn-close" onclick={() => showReviewModal = false}><X size={20}/></button>
+      </div>
+      <div class="modal-body p-6">
+        <div class="form-group mb-6 text-center">
+          <label class="block mb-4 font-bold text-lg">How would you rate this product?</label>
+          <div class="flex justify-center gap-2">
+            {#each Array(5) as _, i}
+              <button 
+                type="button" 
+                class="star-btn" 
+                onclick={() => reviewRating = i + 1}
+              >
+                <Star size={36} fill={i < reviewRating ? "#F59E0B" : "none"} color={i < reviewRating ? "#F59E0B" : "#D1D5DB"} strokeWidth={i < reviewRating ? 0 : 1.5} />
+              </button>
+            {/each}
+          </div>
+        </div>
+        <div class="form-group mb-6">
+          <label class="block mb-2 font-bold text-sm">Your Review</label>
+          <textarea 
+            bind:value={reviewComment} 
+            maxlength="900"
+            rows="5" 
+            placeholder="Tell us what you liked or disliked..."
+            class="w-full p-3 border rounded-md"
+          ></textarea>
+        </div>
+        <button 
+          class="btn-primary w-full p-3 rounded-md text-white font-bold" 
+          style="background: var(--primary);" 
+          onclick={submitReview}
+          disabled={isSubmittingReview}
+        >
+          {isSubmittingReview ? 'Submitting...' : 'Submit Review'}
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   /* Base Variables and Polish */
@@ -1141,5 +1272,93 @@
       height: 36px;
     }
   }
+
+  /* Customer Reviews UI */
+  .customer-reviews-section {
+    margin-top: 80px;
+    padding-top: 60px;
+    border-top: 1px solid #E5E7EB;
+  }
+  .reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .review-card {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+  }
+  .reviewer-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  /* Floating Button */
+  .floating-review-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary) 0%, #D04A2B 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    box-shadow: 0 10px 25px rgba(229, 91, 60, 0.4);
+    cursor: pointer;
+    z-index: 100;
+    transition: var(--transition-bouncy);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .floating-review-btn:hover {
+    transform: scale(1.1) translateY(-5px);
+  }
+  @keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(17, 24, 39, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  .modal-content {
+    background: white;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .btn-close {
+    background: none; border: none; cursor: pointer; color: #6B7280;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-close:hover { color: #111827; }
+  .star-btn {
+    background: none; border: none; cursor: pointer; padding: 0; margin: 0; transition: transform 0.2s;
+  }
+  .star-btn:hover { transform: scale(1.15); }
 </style>
 

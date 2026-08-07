@@ -21,7 +21,7 @@
   onMount(async () => {
     // Fetch products for the dropdown
     try {
-      const pRes = await fetch(`${getApiUrl()}/public/products`);
+      const pRes = await fetch(`/api/public/products`);
       if (pRes.ok) {
         allProducts = await pRes.json();
       }
@@ -57,7 +57,7 @@
     try {
       // NOTE: The backend endpoint POST /admin/flash-sales does not exist yet!
       // This will return 404 until the backend developer creates the API.
-      const res = await fetch(`${getApiUrl()}/admin/flash-sales`, {
+      const res = await fetch(`/api/admin/flash-sales`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

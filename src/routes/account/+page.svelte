@@ -36,6 +36,10 @@
         <Heart size={18} />
         <span>Wishlist</span>
       </a>
+      <a href="/account/wallet" class="nav-item">
+        <Settings size={18} />
+        <span>Wallet & Referrals</span>
+      </a>
       <a href="/account/settings" class="nav-item">
         <Settings size={18} />
         <span>Settings</span>

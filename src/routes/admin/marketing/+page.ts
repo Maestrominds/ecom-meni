@@ -2,7 +2,7 @@ import { getApiUrl } from '$lib/utils/apiUrl';
 
 export async function load({ fetch }) {
     try {
-        const res = await fetch(`${getApiUrl()}/admin/marketing/dashboard`);
+        const res = await fetch(`/api/admin/marketing/dashboard`);
         if (res.ok) {
             const data = await res.json();
             return {

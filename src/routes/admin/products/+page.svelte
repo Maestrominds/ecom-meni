@@ -5,7 +5,7 @@
 
   let { data }: { data: PageData } = $props();
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = '/api';
 
   let products = $state(data.products ? data.products.map((p: any) => {
     const id = p.ID || p.id || '';

@@ -1,9 +1,23 @@
 <script lang="ts">
   import { Heart } from 'lucide-svelte';
   
-  // Since we haven't implemented a global store for wishlist yet, 
-  // we'll leave this empty to show the empty state design.
-  let wishlistItems: any[] = [];
+  import { onMount } from 'svelte';
+  
+  let wishlistItems: any[] = $state([]);
+  let isLoading = $state(true);
+
+  onMount(async () => {
+    try {
+      const res = await fetch('/api/customer/wishlist');
+      if (res.ok) {
+        wishlistItems = await res.json() || [];
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      isLoading = false;
+    }
+  });
 </script>
 
 <svelte:head>
@@ -16,9 +30,17 @@
     <p>Save your favorite items here and come back to them anytime.</p>
   </div>
 
-  {#if wishlistItems.length > 0}
+  {#if isLoading}
+    <div style="text-align: center; padding: 60px;">Loading your wishlist...</div>
+  {:else if wishlistItems.length > 0}
     <div class="products-grid">
       <!-- Would iterate over ProductCard here -->
+      {#each wishlistItems as item}
+        <div style="padding: 16px; border: 1px solid #eee; border-radius: 8px;">
+          <h4>{item.name}</h4>
+          <p>₹{item.price}</p>
+        </div>
+      {/each}
     </div>
   {:else}
     <div class="empty-state">

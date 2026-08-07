@@ -7,8 +7,20 @@
 	import SkeletonLoader from '$lib/components/SkeletonLoader.svelte';
 	import { store } from '$lib/store.svelte';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	onMount(() => {
+		// Load persistent cart
+		store.loadCart();
+
+		// Check for Referral URL Code
+		const refCode = page.url.searchParams.get("ref");
+		if (refCode) {
+			localStorage.setItem('meni_referral_code', refCode);
+		}
+	});
 </script>
 
 <svelte:head>

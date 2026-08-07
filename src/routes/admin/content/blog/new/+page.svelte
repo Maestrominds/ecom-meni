@@ -4,7 +4,7 @@
   import { goto } from '$app/navigation';
   import { uploadImage } from '$lib/utils/upload';
 
-  const baseUrl = env.PUBLIC_API_URL || 'http://localhost:3000/api';
+  const baseUrl = '/api';
 
   let title = $state('');
   let content = $state('');
